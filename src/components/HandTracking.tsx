@@ -22,9 +22,28 @@ export default function HandTracking({ onGesture }: Props) {
   const [loading, setLoading] = useState(false);
   const [gesture, setGesture] = useState<GestureName>("unknown");
   const [hands, setHands] = useState(0);
+  const [cameraDevices, setCameraDevices] = useState<Array<{deviceId:string;label:string}>>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState("");
   const [message, setMessage] = useState("La caméra reste inactive jusqu'à ton autorisation.");
 
   useEffect(() => { callbackRef.current = onGesture; }, [onGesture]);
+
+  async function refreshCameras() {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = (await navigator.mediaDevices.enumerateDevices())
+        .filter((device) => device.kind === "videoinput")
+        .map((device, index) => ({ deviceId: device.deviceId, label: device.label || "Caméra " + (index + 1) }));
+      setCameraDevices(devices);
+      setSelectedCameraId((current) => current || devices[0]?.deviceId || "");
+    } catch { setCameraDevices([]); }
+  }
+
+  useEffect(() => {
+    void refreshCameras();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshCameras);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshCameras);
+  }, []);
 
   function stopCamera() {
     startTokenRef.current += 1;
@@ -57,13 +76,14 @@ export default function HandTracking({ onGesture }: Props) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15, max: 20 } }
+        video: { ...(selectedCameraId ? { deviceId: { exact: selectedCameraId } } : { facingMode: "user" }), width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15, max: 20 } }
       });
       if (disposedRef.current || token !== startTokenRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
       streamRef.current = stream;
+      void refreshCameras();
       const video = videoRef.current;
       if (!video) throw new Error("Élément vidéo introuvable.");
       video.srcObject = stream;
@@ -150,6 +170,7 @@ export default function HandTracking({ onGesture }: Props) {
       landmarkerRef.current?.close();
       landmarkerRef.current = null;
       activeRef.current = false;
+      if (disposedRef.current || token !== startTokenRef.current) return;
       setRunning(false);
       setLoading(false);
       const reason = error instanceof Error ? error.message : "Erreur inconnue.";
@@ -170,6 +191,7 @@ export default function HandTracking({ onGesture }: Props) {
 
   return (
     <div className="vision-module">
+      <div className="camera-picker"><label htmlFor="orel-camera-select">Source vidéo</label><select id="orel-camera-select" value={selectedCameraId} onChange={(event) => setSelectedCameraId(event.target.value)} disabled={running || loading}><option value="">Caméra par défaut</option>{cameraDevices.map((device) => <option key={device.deviceId} value={device.deviceId}>{device.label}</option>)}</select><button type="button" className="quiet-button" onClick={() => void refreshCameras()} disabled={running || loading}>Actualiser</button></div>
       <div className="vision-stage">
         <video ref={videoRef} className="vision-video" playsInline muted aria-label="Flux caméra pour le suivi des mains" />
         <canvas ref={canvasRef} className="vision-overlay" />
@@ -183,7 +205,7 @@ export default function HandTracking({ onGesture }: Props) {
       </div>
       <p className="vision-action">{action}</p>
       <div className="vision-controls">
-        {!running ? <button className="primary-button" onClick={() => void startCamera()} disabled={loading}><Camera size={16}/>{loading ? "Initialisation…" : "Activer la caméra"}</button> : <button className="secondary-button" onClick={stopCamera}><CameraOff size={16}/> Arrêter la caméra</button>}
+        {running ? <button className="secondary-button" onClick={stopCamera}><CameraOff size={16}/> Arrêter la caméra</button> : loading ? <button className="secondary-button" onClick={stopCamera}><CameraOff size={16}/> Annuler l’initialisation</button> : <button className="primary-button" onClick={() => void startCamera()}><Camera size={16}/> Activer la caméra</button>}
       </div>
       <p className="notice" role="status">{message}</p>
       <p className="vision-privacy">Traitement des images sur cet appareil. Le modèle MediaPipe et son moteur WebAssembly sont téléchargés depuis des sources publiques au premier démarrage. Aucune image n'est envoyée par OREL.</p>
