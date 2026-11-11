@@ -6,6 +6,8 @@ import {
 import { clearMessages, loadMessages, saveMessages, type ChatMessage } from "./lib/memory";
 import { askOllama } from "./lib/ollama";
 import { listenOnce, speak } from "./lib/voice";
+import HandTracking from "./components/HandTracking";
+import type { GestureName, HandPointer } from "./lib/gestures";
 
 const Scene3D = lazy(() => import("./components/Scene3D"));
 const CONFIG_KEY = "orel.ai-config.v1";
@@ -14,7 +16,15 @@ const MEMORY_ENABLED_KEY = "orel.memory-enabled.v1";
 type AiConfig = { endpoint: string; model: string };
 const defaultConfig: AiConfig = { endpoint: "http://localhost:11434", model: "qwen2.5:3b" };
 
-function readMemoryEnabled(): boolean {\n  try { return localStorage.getItem(MEMORY_ENABLED_KEY) !== "false"; } catch { return true; }\n}\n\nfunction readConfig(): AiConfig {
+function readMemoryEnabled(): boolean {
+  try {
+    return localStorage.getItem(MEMORY_ENABLED_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+function readConfig(): AiConfig {
   try {
     const saved = localStorage.getItem(CONFIG_KEY);
     return saved ? { ...defaultConfig, ...JSON.parse(saved) as Partial<AiConfig> } : defaultConfig;
@@ -25,7 +35,7 @@ function readMemoryEnabled(): boolean {\n  try { return localStorage.getItem(MEM
 
 function localReply(prompt: string): string | null {
   const value = prompt.toLocaleLowerCase("fr-FR");
-  if (/^(bonjour|salut|bonsoir|hello|hey)(\\s|$|[!.?])/.test(value)) {
+  if (/^(bonjour|salut|bonsoir|hello|hey)(\s|$|[!.?])/.test(value)) {
     return "Bonjour. Je suis OREL. Je peux répondre aux salutations et aux demandes simples. Connecte un modèle Ollama local pour activer la conversation intelligente.";
   }
   if (value.includes("quelle heure") || value.includes("l'heure") || value === "heure") {
@@ -43,6 +53,9 @@ function localReply(prompt: string): string | null {
 export default function App() {
   const [active, setActive] = useState("Accueil");
   const [cameraReady, setCameraReady] = useState(false);
+  const [gestureShortcuts, setGestureShortcuts] = useState(false);
+  const [gestureNotice, setGestureNotice] = useState("Les raccourcis gestuels sont désactivés par défaut.");
+  const [handPointer, setHandPointer] = useState<HandPointer>({ x: 0.5, y: 0.5, gesture: "unknown", active: false });
   const [microphoneReady, setMicrophoneReady] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceReplies, setVoiceReplies] = useState(false);
@@ -139,6 +152,24 @@ export default function App() {
     if (!stop) setListening(false);
   }
 
+  function handleGesture(gesture: Exclude<GestureName, "unknown">) {
+    const destinations: Partial<Record<Exclude<GestureName, "unknown">, string>> = {
+      fist: "Accueil",
+      victory: "Assistant"
+    };
+    if (gestureShortcuts && gesture === "open_palm") {
+      setGestureNotice("Mode 3D actif : utilise l’index pour orienter le noyau et le pincement pour zoomer.");
+      return;
+    }
+    const destination = destinations[gesture];
+    if (gestureShortcuts && destination) {
+      setActive(destination);
+      setGestureNotice(`Geste reconnu : ${gesture}. Navigation vers ${destination}.`);
+    } else {
+      setGestureNotice(`Geste reconnu : ${gesture}. ${gestureShortcuts ? "Aucun raccourci associé." : "Active les raccourcis pour autoriser la navigation gestuelle."}`);
+    }
+  }
+
   function saveConfig() {
     try {
       localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
@@ -214,9 +245,9 @@ export default function App() {
 
         {active === "Mémoire" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">DONNÉES LOCALES</span><h2>Mémoire d'OREL</h2></div><Activity size={22}/></div><p className="panel-description">OREL conserve au maximum 100 messages dans le stockage local du navigateur. Ces données ne sont pas synchronisées vers un serveur.</p><div className="memory-summary"><strong>{memoryEnabled ? messages.length : 0}</strong><span>messages conservés</span><button className="quiet-button" onClick={eraseMemory}><Trash2 size={15}/> Tout effacer</button></div><button className="secondary-button" onClick={() => setMemoryEnabled((value) => !value)}>{memoryEnabled ? "Désactiver la mémoire" : "Activer la mémoire"}</button></section>}
 
-        {active === "Vision & gestes" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">VISION PAR ORDINATEUR</span><h2>Caméra et gestes</h2></div><Hand size={22}/></div><p className="panel-description">Le test de permission caméra est disponible. Le suivi des 21 points de la main et les commandes gestuelles restent à implémenter.</p><button className="primary-button" onClick={requestCamera}><Camera size={17}/> Tester la caméra</button>{notice && <p className="notice">{notice}</p>}</section>}
+        {active === "Vision & gestes" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">VISION PAR ORDINATEUR</span><h2>Suivi des mains</h2></div><Hand size={22}/></div><p className="panel-description">MediaPipe détecte jusqu'à deux mains et leurs 21 points de repère. Le traitement vidéo s'effectue localement. Le premier démarrage télécharge le moteur WebAssembly et le modèle de détection.</p><HandTracking onGesture={handleGesture} onPointer={setHandPointer}/><div className="gesture-shortcuts"><label><input type="checkbox" checked={gestureShortcuts} onChange={(event) => setGestureShortcuts(event.target.checked)}/> Autoriser les raccourcis de navigation par gestes</label><p>Paume ouverte : mode 3D · Poing : accueil · Deux doigts : assistant. Index : orienter le noyau 3D · Pincement : agrandir le noyau.</p><p className="notice" role="status">{gestureNotice}</p></div><div className="panel-heading vision-3d-heading"><div><span className="eyebrow">CONTRÔLE SPATIAL</span><h2>Interaction 3D par la main</h2></div></div><p className="panel-description">Index pointé : orienter le noyau. Pincement pouce-index : agrandir le noyau. Garde la main visible dans la caméra pendant le contrôle.</p><Scene3D handControl={handPointer}/></section>}
 
-        {active === "Interface 3D" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">RENDU SPATIAL</span><h2>Noyau 3D</h2></div><Layers3 size={22}/></div><Suspense fallback={<p>Chargement de la scène…</p>}><Scene3D/></Suspense><p className="panel-description">Scène Three.js animée. La manipulation gestuelle des objets n'est pas encore connectée.</p></section>}
+        {active === "Interface 3D" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">RENDU SPATIAL</span><h2>Noyau 3D</h2></div><Layers3 size={22}/></div><Suspense fallback={<p>Chargement de la scène…</p>}><Scene3D handControl={handPointer}/></Suspense><p className="panel-description">Scène Three.js animée. Pour contrôler le noyau avec la main, active la caméra dans Vision & gestes.</p></section>}
 
         {active === "Voix" || active === "Permissions" || active === "Vision & gestes" ? null : null}
         {notice && active === "Assistant" && <p className="notice" role="status">{notice}</p>}
