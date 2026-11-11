@@ -50,6 +50,6 @@
 - Webcam source selection is available after browser device enumeration. The user must stop the stream before changing camera.
 - The video stream is requested only after a click, with audio disabled. The stream is stopped on user action and component cleanup, including cancellation during model initialization.
 - Gesture classification is a local heuristic over the 21 normalized landmarks. It is not biometric identification and does not save hand geometry.
-- Gesture navigation shortcuts are disabled by default. Only three stable gestures can navigate between existing app screens; pointing and pinch are currently recognition-only.
+- Gesture navigation shortcuts are disabled by default. Three stable gestures can trigger navigation or activate the 3D mode; pointing rotates the 3D core and pinch scales it while the camera remains active.
 - MediaPipe WASM and model files are fetched from pinned/public URLs at first use. Camera frames remain local; initial model/runtime download still requires Internet access.
 - The synchronous video inference loop may briefly block the browser UI. A Web Worker is a future optimization if real-device profiling shows unacceptable frame drops or latency.
