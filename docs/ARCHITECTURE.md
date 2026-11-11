@@ -24,3 +24,20 @@
 - Never upload camera frames by default.
 - Do not store biometric templates or identify people.
 - Keep secrets out of VITE environment variables and Git.
+
+
+## Assistant core (V0.2)
+
+- Conversation UI supports text input and browser speech recognition/synthesis where available.
+- Local conversation history is stored in browser localStorage (maximum 100 messages) and can be disabled or erased by the user.
+- Optional local model adapter targets an Ollama-compatible `/api/chat` endpoint. The default is `http://localhost:11434` with model `qwen2.5:3b`; the model must already be installed and running.
+- The browser must be allowed by Ollama's CORS/origin configuration. Do not expose the Ollama service to a public network.
+- If Ollama is unavailable, OREL only answers a few explicitly implemented local intents. It must not pretend that a full AI model is connected.
+
+## Permission and desktop security model
+
+- Camera and microphone access are requested only after an explicit user action. Camera test streams are stopped immediately after permission is checked.
+- Browser permissions do not grant Windows filesystem, process, shell, registry, or global keyboard access.
+- Windows control is intentionally unavailable in the browser build. A future Tauri desktop adapter must expose narrow, typed actions rather than a general unrestricted shell.
+- File operations should be limited to user-selected folders; destructive operations, software installation, external messages, and system configuration require a per-action confirmation.
+- Every desktop capability must have a visible permission state, a revocation path, and an audit record. Never store credentials in localStorage or VITE-prefixed variables.
