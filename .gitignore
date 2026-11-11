@@ -11,3 +11,4 @@ src-tauri/gen/
 .vscode/
 .idea/
 *.log
+*.tsbuildinfo
