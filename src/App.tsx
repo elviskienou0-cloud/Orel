@@ -35,7 +35,7 @@ function readConfig(): AiConfig {
 
 function localReply(prompt: string): string | null {
   const value = prompt.toLocaleLowerCase("fr-FR");
-  if (/^(bonjour|salut|bonsoir|hello|hey)(\\s|$|[!.?])/.test(value)) {
+  if (/^(bonjour|salut|bonsoir|hello|hey)(\s|$|[!.?])/.test(value)) {
     return "Bonjour. Je suis OREL. Je peux répondre aux salutations et aux demandes simples. Connecte un modèle Ollama local pour activer la conversation intelligente.";
   }
   if (value.includes("quelle heure") || value.includes("l'heure") || value === "heure") {
