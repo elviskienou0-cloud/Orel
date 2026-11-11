@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions de base de la fenêtre principale OREL",
+  "description": "Accès minimal à la seule commande native autorisée d'OREL",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["allow-open-allowed-app"]
 }
