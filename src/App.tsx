@@ -14,7 +14,15 @@ const MEMORY_ENABLED_KEY = "orel.memory-enabled.v1";
 type AiConfig = { endpoint: string; model: string };
 const defaultConfig: AiConfig = { endpoint: "http://localhost:11434", model: "qwen2.5:3b" };
 
-function readMemoryEnabled(): boolean {\n  try { return localStorage.getItem(MEMORY_ENABLED_KEY) !== "false"; } catch { return true; }\n}\n\nfunction readConfig(): AiConfig {
+function readMemoryEnabled(): boolean {
+  try {
+    return localStorage.getItem(MEMORY_ENABLED_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+function readConfig(): AiConfig {
   try {
     const saved = localStorage.getItem(CONFIG_KEY);
     return saved ? { ...defaultConfig, ...JSON.parse(saved) as Partial<AiConfig> } : defaultConfig;
