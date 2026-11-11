@@ -11,6 +11,8 @@ export default function HandTracking({ onGesture }: Props) {
   const landmarkerRef = useRef<{ detectForVideo: (video: HTMLVideoElement, timestamp: number) => { landmarks: Landmark[][] }; close: () => void } | null>(null);
   const rafRef = useRef<number>(0);
   const activeRef = useRef(false);
+  const disposedRef = useRef(false);
+  const startTokenRef = useRef(0);
   const lastFrameRef = useRef(0);
   const candidateRef = useRef<GestureName>("unknown");
   const candidateSinceRef = useRef(0);
@@ -25,6 +27,7 @@ export default function HandTracking({ onGesture }: Props) {
   useEffect(() => { callbackRef.current = onGesture; }, [onGesture]);
 
   function stopCamera() {
+    startTokenRef.current += 1;
     activeRef.current = false;
     cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -48,6 +51,7 @@ export default function HandTracking({ onGesture }: Props) {
       setMessage("Caméra indisponible : utilise Chrome ou Edge sur localhost ou HTTPS.");
       return;
     }
+    const token = ++startTokenRef.current;
     setLoading(true);
     setMessage("Demande d'autorisation caméra…");
     try {
@@ -55,6 +59,10 @@ export default function HandTracking({ onGesture }: Props) {
         audio: false,
         video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15, max: 20 } }
       });
+      if (disposedRef.current || token !== startTokenRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       const video = videoRef.current;
       if (!video) throw new Error("Élément vidéo introuvable.");
@@ -77,6 +85,11 @@ export default function HandTracking({ onGesture }: Props) {
         minTrackingConfidence: 0.5
       };
       const landmarker = await vision.HandLandmarker.createFromOptions(fileset, options);
+      if (disposedRef.current || token !== startTokenRef.current) {
+        landmarker.close();
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       landmarkerRef.current = landmarker;
       activeRef.current = true;
       setRunning(true);
@@ -98,7 +111,7 @@ export default function HandTracking({ onGesture }: Props) {
         }
         context.clearRect(0, 0, canvas.width, canvas.height);
         const palette = "#7de1ff";
-        const connections = vision.HAND_CONNECTIONS;
+        const connections = vision.HandLandmarker.HAND_CONNECTIONS;
         result.landmarks.forEach((points) => {
           context.strokeStyle = palette;
           context.lineWidth = Math.max(2, canvas.width / 320);
@@ -145,6 +158,8 @@ export default function HandTracking({ onGesture }: Props) {
   }
 
   useEffect(() => () => {
+    disposedRef.current = true;
+    startTokenRef.current += 1;
     activeRef.current = false;
     cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((track) => track.stop());
