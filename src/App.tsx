@@ -8,6 +8,7 @@ import { askOllama, checkOllama } from "./lib/ollama";
 import { allowedDesktopApps, isDesktopRuntime, openAllowedApp, type AllowedDesktopApp } from "./lib/platform";
 import { listenOnce, speak } from "./lib/voice";
 import HandTracking from "./components/HandTracking";
+import SpatialWorkspace from "./components/SpatialWorkspace";
 import type { GestureName, HandPointer } from "./lib/gestures";
 
 const Scene3D = lazy(() => import("./components/Scene3D"));
@@ -332,7 +333,7 @@ export default function App() {
 
         {active === "Vision & gestes" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">VISION PAR ORDINATEUR</span><h2>Suivi des mains</h2></div><Hand size={22}/></div><p className="panel-description">MediaPipe détecte jusqu'à deux mains et leurs 21 points de repère. Le traitement vidéo s'effectue localement. Le premier démarrage télécharge le moteur WebAssembly et le modèle de détection.</p><HandTracking onGesture={handleGesture} onPointer={setHandPointer}/><div className="gesture-shortcuts"><label><input type="checkbox" checked={gestureShortcuts} onChange={(event) => setGestureShortcuts(event.target.checked)}/> Autoriser les raccourcis de navigation par gestes</label><p>Paume ouverte : mode 3D · Poing : accueil · Deux doigts : assistant. Index : orienter le noyau 3D · Pincement : agrandir le noyau.</p><p className="notice" role="status">{gestureNotice}</p></div><div className="panel-heading vision-3d-heading"><div><span className="eyebrow">CONTRÔLE SPATIAL</span><h2>Interaction 3D par la main</h2></div></div><p className="panel-description">Index pointé : orienter le noyau. Pincement pouce-index : agrandir le noyau. Garde la main visible dans la caméra pendant le contrôle.</p><Suspense fallback={<p>Chargement du noyau 3D…</p>}><Scene3D handControl={handPointer}/></Suspense></section>}
 
-        {active === "Interface 3D" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">RENDU SPATIAL</span><h2>Noyau 3D</h2></div><Layers3 size={22}/></div><Suspense fallback={<p>Chargement de la scène…</p>}><Scene3D handControl={handPointer}/></Suspense><p className="panel-description">Scène Three.js animée. Pour contrôler le noyau avec la main, active la caméra dans Vision & gestes.</p></section>}
+        {active === "Interface 3D" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">RENDU SPATIAL INTERACTIF</span><h2>Espace de travail 3D</h2></div><Layers3 size={22}/></div><p className="panel-description">Déplace les panneaux avec la souris ou pince un panneau avec la main pour le déplacer. Le noyau réagit à l’index et au pincement.</p><SpatialWorkspace handPointer={handPointer} onPointer={setHandPointer} messages={messages} onNavigate={setActive}/></section>}
 
         {active === "Voix" || active === "Permissions" || active === "Vision & gestes" ? null : null}
         {notice && active === "Assistant" && <p className="notice" role="status">{notice}</p>}

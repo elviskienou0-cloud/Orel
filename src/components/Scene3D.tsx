@@ -2,9 +2,9 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { HandPointer } from "../lib/gestures";
 
-type Props = { handControl?: HandPointer };
+type Props = { handControl?: HandPointer; height?: number };
 
-export default function Scene3D({ handControl }: Props) {
+export default function Scene3D({ handControl, height = 320 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const handControlRef = useRef<HandPointer | undefined>(handControl);
 
@@ -159,7 +159,7 @@ export default function Scene3D({ handControl }: Props) {
       className="scene3d"
       role="img"
       aria-label="Noyau spatial 3D animé d'OREL"
-      style={{ width: "100%", height: "320px", minHeight: "240px", overflow: "hidden", borderRadius: "12px" }}
+      style={{ width: "100%", height: height + "px", minHeight: "240px", overflow: "hidden", borderRadius: "12px" }}
     />
   );
 }

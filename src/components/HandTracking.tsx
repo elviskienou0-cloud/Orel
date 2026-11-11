@@ -26,9 +26,15 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
   const [cameraDevices, setCameraDevices] = useState<Array<{deviceId:string;label:string}>>([]);
   const [selectedCameraId, setSelectedCameraId] = useState("");
   const [message, setMessage] = useState("La caméra reste inactive jusqu'à ton autorisation.");
+  const [gestureStability, setGestureStability] = useState(500);
+  const [pinchSensitivity, setPinchSensitivity] = useState(55);
+  const gestureStabilityRef = useRef(500);
+  const pinchSensitivityRef = useRef(55);
 
   useEffect(() => { callbackRef.current = onGesture; }, [onGesture]);
   useEffect(() => { pointerCallbackRef.current = onPointer; }, [onPointer]);
+  useEffect(() => { gestureStabilityRef.current = gestureStability; }, [gestureStability]);
+  useEffect(() => { pinchSensitivityRef.current = pinchSensitivity; }, [pinchSensitivity]);
 
   async function refreshCameras() {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -50,6 +56,10 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
   function stopCamera() {
     startTokenRef.current += 1;
     activeRef.current = false;
+    candidateRef.current = "unknown";
+    candidateSinceRef.current = 0;
+    lastSentRef.current = "unknown";
+    lastFrameRef.current = 0;
     cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -86,6 +96,12 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
         return;
       }
       streamRef.current = stream;
+      stream.getVideoTracks().forEach((track) => track.addEventListener("ended", () => {
+        if (streamRef.current === stream) {
+          stopCamera();
+          setMessage("Le flux caméra a été interrompu. Vérifie la webcam et relance le suivi.");
+        }
+      }, { once: true }));
       void refreshCameras();
       const video = videoRef.current;
       if (!video) throw new Error("Élément vidéo introuvable.");
@@ -168,7 +184,7 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
         });
         setHands(result.landmarks.length);
         const primaryHand = result.landmarks[0];
-        const current = primaryHand ? classifyGesture(primaryHand) : "unknown";
+        const current = primaryHand ? classifyGesture(primaryHand, pinchSensitivityRef.current / 1000) : "unknown";
         setGesture(current);
         if (primaryHand) {
           pointerCallbackRef.current?.({ x: primaryHand[8].x, y: primaryHand[8].y, gesture: current, active: current === "point" || current === "pinch" });
@@ -178,7 +194,7 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
         if (current !== candidateRef.current) {
           candidateRef.current = current;
           candidateSinceRef.current = now;
-        } else if (current !== "unknown" && current !== lastSentRef.current && now - candidateSinceRef.current > 500) {
+        } else if (current !== "unknown" && current !== lastSentRef.current && now - candidateSinceRef.current >= gestureStabilityRef.current) {
           lastSentRef.current = current;
           callbackRef.current?.(current);
         }
@@ -227,6 +243,10 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
       <div className="vision-stats">
         <div><span>MAINS DÉTECTÉES</span><strong>{hands}/2</strong></div>
         <div><span>GESTE RECONNU</span><strong>{GESTURE_LABELS[gesture]}</strong></div>
+      </div>
+      <div className="gesture-tuning">
+        <label>Stabilité du geste <strong>{gestureStability} ms</strong><input type="range" min="300" max="900" step="100" value={gestureStability} onChange={(event) => setGestureStability(Number(event.target.value))}/></label>
+        <label>Sensibilité du pincement <strong>{pinchSensitivity}/100</strong><input type="range" min="35" max="75" step="5" value={pinchSensitivity} onChange={(event) => setPinchSensitivity(Number(event.target.value))}/></label>
       </div>
       <p className="vision-action">{action}</p>
       <div className="vision-controls">
