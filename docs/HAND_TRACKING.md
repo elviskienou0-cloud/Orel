@@ -21,7 +21,7 @@ The model runs locally after download. OREL does not upload webcam frames. A net
 
 | Gesture | First V1 behavior |
 |---|---|
-| Open palm | Navigate to the 3D interface, only if shortcuts are enabled |
+| Open palm | Activate 3D hand-control mode on the Vision screen, only if shortcuts are enabled |
 | Closed fist | Navigate to Home, only if shortcuts are enabled |
 | Two fingers / victory | Navigate to Assistant, only if shortcuts are enabled |
 | Index pointing | Recognized and displayed; no action bound yet |
