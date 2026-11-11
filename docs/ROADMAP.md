@@ -49,6 +49,6 @@ The browser app does not have unrestricted Windows permissions. That requires a 
 - The first heuristic classifier recognizes open palm, fist, pointing index, pinch and victory/two-finger gestures.
 - Stable gestures must persist for 500 ms before an event is emitted. Navigation shortcuts are disabled by default and must be explicitly enabled.
 - Index pointing rotates the 3D core and thumb-index pinch scales it while the camera is active on the Vision screen.
-- Current shortcuts: open palm -> 3D screen; fist -> home; victory -> assistant. Point and pinch are recognized but are not yet bound to object manipulation.
+- Current shortcuts: open palm -> activate 3D control mode without leaving the Vision screen; fist -> Home; victory -> Assistant. Index pointing rotates the core and pinch scales it.
 - Camera frames are not uploaded by OREL. A network connection is needed on first use to fetch the model and WebAssembly assets; browser caching may help subsequent launches.
 - Manual validation is still required on the target Windows laptop. The feature must not be considered fully validated until camera selection, lighting, both hands, stop/restart, and CPU load have been tested.
