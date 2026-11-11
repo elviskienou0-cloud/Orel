@@ -34,9 +34,13 @@ try {
 
   await assert.rejects(
     () => ollama.checkOllama({ endpoint: "file:///etc/passwd", model: "x" }),
-    /HTTP\(S\)/
+    /serveur Ollama local/
+  );
+  await assert.rejects(
+    () => ollama.checkOllama({ endpoint: "https://example.com", model: "x" }),
+    /serveur Ollama local/
   );
 } finally {
   globalThis.fetch = originalFetch;
 }
-console.log("3 Ollama adapter checks passed.");
+console.log("4 Ollama adapter checks passed.");

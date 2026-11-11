@@ -16,19 +16,21 @@ function getEndpoint(config: OllamaConfig): string {
   } catch {
     throw new Error("L'adresse du serveur IA n'est pas valide.");
   }
+  const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
   if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+      !localHosts.has(parsed.hostname) ||
       parsed.username || parsed.password || parsed.search || parsed.hash) {
-    throw new Error("Utilise une adresse HTTP(S) sans identifiant, paramètre ni fragment.");
+    throw new Error("Pour protéger tes conversations, OREL accepte uniquement un serveur Ollama local (localhost ou 127.0.0.1), sans identifiant ni paramètre.");
   }
   return endpoint;
 }
 
-async function fetchWithTimeout(
+async function fetchJsonWithTimeout(
   url: string,
   init: RequestInit,
   externalSignal: AbortSignal | undefined,
   timeoutMs: number
-): Promise<Response> {
+): Promise<{ response: Response; data: unknown }> {
   const controller = new AbortController();
   let timedOut = false;
   const abortFromCaller = () => controller.abort();
@@ -39,7 +41,10 @@ async function fetchWithTimeout(
     controller.abort();
   }, timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) return { response, data: null };
+    const data: unknown = await response.json();
+    return { response, data };
   } catch (error) {
     if (timedOut) throw new Error("Le serveur Ollama n'a pas répondu dans le délai imparti.");
     throw error;
@@ -51,9 +56,11 @@ async function fetchWithTimeout(
 
 export async function checkOllama(config: OllamaConfig, signal?: AbortSignal): Promise<string[]> {
   const endpoint = getEndpoint(config);
-  const response = await fetchWithTimeout(endpoint + "/api/tags", { method: "GET" }, signal, 8_000);
-  if (!response.ok) throw new Error("Ollama a répondu avec le statut " + response.status + ".");
-  const data: unknown = await response.json();
+  const result = await fetchJsonWithTimeout(endpoint + "/api/tags", { method: "GET" }, signal, 8_000);
+  if (!result.response.ok) {
+    throw new Error("Ollama a répondu avec le statut " + result.response.status + ".");
+  }
+  const data = result.data;
   if (typeof data !== "object" || data === null || !("models" in data) ||
       !Array.isArray((data as { models?: unknown }).models)) {
     throw new Error("Réponse inattendue du serveur Ollama.");
@@ -75,7 +82,7 @@ export async function askOllama(
   if (!prompt) throw new Error("Le message est vide.");
   if (prompt.length > 20_000) throw new Error("Le message dépasse la limite de 20 000 caractères.");
 
-  const response = await fetchWithTimeout(
+  const result = await fetchJsonWithTimeout(
     endpoint + "/api/chat",
     {
       method: "POST",
@@ -100,12 +107,12 @@ export async function askOllama(
     120_000
   );
 
-  if (!response.ok) {
-    throw new Error("Le serveur IA a répondu avec le statut " + response.status + ". Vérifie Ollama, le modèle et les autorisations réseau du navigateur.");
+  if (!result.response.ok) {
+    throw new Error("Le serveur IA a répondu avec le statut " + result.response.status + ". Vérifie Ollama, le modèle et les autorisations réseau du navigateur.");
   }
-  const data: unknown = await response.json();
+  const data = result.data;
   if (typeof data !== "object" || data === null || !("message" in data)) {
-    throw new Error("Réponse inattendue du serveur IA.");
+    throw new Error("Réponse inattendue du serveur Ollama.");
   }
   const message = (data as { message?: { content?: unknown } }).message;
   if (typeof message?.content !== "string" || !message.content.trim()) {
