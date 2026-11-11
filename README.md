@@ -5,7 +5,9 @@ OREL est un assistant personnel interactif, développé Windows-first avec une a
 ## Fonctions du dépôt
 
 - Interface React + Vite + TypeScript.
-- Noyau visuel Three.js.
+- Noyau visuel Three.js et espace de travail à panneaux flottants.
+- Déplacement des panneaux à la souris ou par pincement de la main.
+- Réglage de la stabilité des gestes et de la sensibilité du pincement.
 - Suivi local des mains par MediaPipe Tasks Vision.
 - Reconnaissance gestuelle de base.
 - Conversation via Ollama local (modèle installé séparément).

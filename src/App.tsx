@@ -1,23 +1,3 @@
-import { lazy, Suspense, useState } from "react";
-
-const Scene3D = lazy(() => import("./components/Scene3D"));
-import { Activity, AudioLines, Camera, Command, Hand, Layers3, ShieldCheck, Sparkles } from "lucide-react";
-type ModuleStatus = "planned" | "prototype";
-const modules: {name:string;detail:string;icon:typeof Camera;status:ModuleStatus}[] = [
-{name:"Vision gestuelle",detail:"Webcam et suivi des mains",icon:Hand,status:"planned"},
-{name:"Interface spatiale",detail:"Scène 3D interactive",icon:Layers3,status:"prototype"},
-{name:"Voix",detail:"Entrée et synthèse vocale",icon:AudioLines,status:"planned"},
-{name:"Mémoire",detail:"Stockage local persistant",icon:Activity,status:"planned"}
-];
-export default function App(){
-const [active,setActive]=useState("Accueil"); const [cameraRequested,setCameraRequested]=useState(false);
-async function requestCamera(){try{const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});stream.getTracks().forEach(t=>t.stop());setCameraRequested(true);}catch{setCameraRequested(false);alert("Caméra indisponible. Vérifie les autorisations Windows et du navigateur.");}}
-return <main className="shell"><aside className="sidebar"><div className="brand"><div className="brand-mark"><Sparkles size={20}/></div><div><strong>OREL</strong><span>PERSONAL INTELLIGENCE</span></div></div><div className="nav-label">ESPACE</div>{["Accueil","Interface 3D","Vision & gestes","Voix","Mémoire"].map(item=><button className={active===item?"nav-item active":"nav-item"} key={item} onClick={()=>setActive(item)}><Command size={16}/>{item}</button>)}<div className="sidebar-bottom"><ShieldCheck size={16}/><span>Traitement local privilégié</span></div></aside>
-<section className="content"><header className="topbar"><div><span className="eyebrow">PROJET PERSONNEL · V1</span><h1>{active}</h1></div><div className="system-pill"><span className="status-dot"/> Système initialisé</div></header>
-<section className="hero"><div className="hero-copy"><span className="eyebrow">INTERFACE INTELLIGENTE</span><h2>Une nouvelle façon<br/>d'interagir avec le numérique.</h2><p>OREL réunit intelligence artificielle, vision par ordinateur, voix et environnement 3D dans une expérience conçue pour évoluer de Windows vers Android.</p><div className="hero-actions"><button className="primary-button" onClick={requestCamera}><Camera size={17}/>{cameraRequested?"Caméra détectée":"Tester la caméra"}</button><span className="micro-note">{cameraRequested?"Autorisation caméra accordée":"Aucune capture n'est conservée"}</span></div></div><Suspense fallback={<div className="scene3d scene3d-loading" aria-label="Chargement de la scène 3D"><span className="scene3d-label">INITIALISATION 3D…</span></div>}><Scene3D /></Suspense></section>
-<div className="section-heading"><div><span className="eyebrow">ARCHITECTURE MODULAIRE</span><h3>Modules OREL</h3></div><span className="muted">Fondations · Jour 1</span></div><section className="module-grid">{modules.map(({name,detail,icon:Icon,status})=><article className="module-card" key={name}><div className="module-icon"><Icon size={19}/></div><div className="module-title">{name}</div><p>{detail}</p><span className={status==="prototype"?"module-status prototype":"module-status"}>{status==="prototype"?"Socle visuel":"À développer"}</span></article>)}</section><footer><span>OREL V0.1.0 · FOUNDATION</span><span>Windows first · Android-ready architecture</span></footer></section></main>;
-}
-=======
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Activity, AudioLines, Camera, Check, Command, Hand, Layers3, LockKeyhole,
@@ -28,6 +8,7 @@ import { askOllama, checkOllama } from "./lib/ollama";
 import { allowedDesktopApps, isDesktopRuntime, openAllowedApp, type AllowedDesktopApp } from "./lib/platform";
 import { listenOnce, speak } from "./lib/voice";
 import HandTracking from "./components/HandTracking";
+import SpatialWorkspace from "./components/SpatialWorkspace";
 import type { GestureName, HandPointer } from "./lib/gestures";
 
 const Scene3D = lazy(() => import("./components/Scene3D"));
@@ -352,7 +333,7 @@ export default function App() {
 
         {active === "Vision & gestes" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">VISION PAR ORDINATEUR</span><h2>Suivi des mains</h2></div><Hand size={22}/></div><p className="panel-description">MediaPipe détecte jusqu'à deux mains et leurs 21 points de repère. Le traitement vidéo s'effectue localement. Le premier démarrage télécharge le moteur WebAssembly et le modèle de détection.</p><HandTracking onGesture={handleGesture} onPointer={setHandPointer}/><div className="gesture-shortcuts"><label><input type="checkbox" checked={gestureShortcuts} onChange={(event) => setGestureShortcuts(event.target.checked)}/> Autoriser les raccourcis de navigation par gestes</label><p>Paume ouverte : mode 3D · Poing : accueil · Deux doigts : assistant. Index : orienter le noyau 3D · Pincement : agrandir le noyau.</p><p className="notice" role="status">{gestureNotice}</p></div><div className="panel-heading vision-3d-heading"><div><span className="eyebrow">CONTRÔLE SPATIAL</span><h2>Interaction 3D par la main</h2></div></div><p className="panel-description">Index pointé : orienter le noyau. Pincement pouce-index : agrandir le noyau. Garde la main visible dans la caméra pendant le contrôle.</p><Suspense fallback={<p>Chargement du noyau 3D…</p>}><Scene3D handControl={handPointer}/></Suspense></section>}
 
-        {active === "Interface 3D" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">RENDU SPATIAL</span><h2>Noyau 3D</h2></div><Layers3 size={22}/></div><Suspense fallback={<p>Chargement de la scène…</p>}><Scene3D handControl={handPointer}/></Suspense><p className="panel-description">Scène Three.js animée. Pour contrôler le noyau avec la main, active la caméra dans Vision & gestes.</p></section>}
+        {active === "Interface 3D" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">RENDU SPATIAL INTERACTIF</span><h2>Espace de travail 3D</h2></div><Layers3 size={22}/></div><p className="panel-description">Déplace les panneaux avec la souris ou pince un panneau avec la main pour le déplacer. Le noyau réagit à l’index et au pincement.</p><SpatialWorkspace handPointer={handPointer} onPointer={setHandPointer} messages={messages} onNavigate={setActive}/></section>}
 
         {active === "Voix" || active === "Permissions" || active === "Vision & gestes" ? null : null}
         {notice && active === "Assistant" && <p className="notice" role="status">{notice}</p>}
