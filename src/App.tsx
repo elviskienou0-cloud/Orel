@@ -14,7 +14,7 @@ const MEMORY_ENABLED_KEY = "orel.memory-enabled.v1";
 type AiConfig = { endpoint: string; model: string };
 const defaultConfig: AiConfig = { endpoint: "http://localhost:11434", model: "qwen2.5:3b" };
 
-function readConfig(): AiConfig {
+function readMemoryEnabled(): boolean {\n  try { return localStorage.getItem(MEMORY_ENABLED_KEY) !== "false"; } catch { return true; }\n}\n\nfunction readConfig(): AiConfig {
   try {
     const saved = localStorage.getItem(CONFIG_KEY);
     return saved ? { ...defaultConfig, ...JSON.parse(saved) as Partial<AiConfig> } : defaultConfig;
@@ -46,7 +46,7 @@ export default function App() {
   const [microphoneReady, setMicrophoneReady] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceReplies, setVoiceReplies] = useState(false);
-  const [memoryEnabled, setMemoryEnabled] = useState(() => localStorage.getItem(MEMORY_ENABLED_KEY) !== "false");
+  const [memoryEnabled, setMemoryEnabled] = useState(readMemoryEnabled);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages());
   const [draft, setDraft] = useState("");
   const [config, setConfig] = useState<AiConfig>(() => readConfig());
@@ -58,7 +58,7 @@ export default function App() {
   useEffect(() => {
     if (memoryEnabled) saveMessages(messages);
     else clearMessages();
-    localStorage.setItem(MEMORY_ENABLED_KEY, String(memoryEnabled));
+    try { localStorage.setItem(MEMORY_ENABLED_KEY, String(memoryEnabled)); } catch { /* Storage may be unavailable. */ }
   }, [messages, memoryEnabled]);
 
   useEffect(() => {
