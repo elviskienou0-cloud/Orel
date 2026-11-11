@@ -93,6 +93,10 @@ export default function HandTracking({ onGesture }: Props) {
       const fileset = await vision.FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
       );
+      if (disposedRef.current || token !== startTokenRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       const options = {
         baseOptions: {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
@@ -178,13 +182,16 @@ export default function HandTracking({ onGesture }: Props) {
     }
   }
 
-  useEffect(() => () => {
-    disposedRef.current = true;
-    startTokenRef.current += 1;
-    activeRef.current = false;
-    cancelAnimationFrame(rafRef.current);
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    landmarkerRef.current?.close();
+  useEffect(() => {
+    disposedRef.current = false;
+    return () => {
+      disposedRef.current = true;
+      startTokenRef.current += 1;
+      activeRef.current = false;
+      cancelAnimationFrame(rafRef.current);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      landmarkerRef.current?.close();
+    };
   }, []);
 
   const action = gesture === "unknown" ? "Présente une main devant la caméra." : GESTURE_ACTIONS[gesture];
