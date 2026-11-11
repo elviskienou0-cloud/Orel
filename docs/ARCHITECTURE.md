@@ -45,7 +45,7 @@
 
 ## Browser hand-tracking adapter
 
-- The Vision & gestes screen dynamically imports the pinned MediaPipe Tasks Vision 0.10.22 package.
+- The Vision & gestes screen dynamically imports the pinned MediaPipe Tasks Vision 0.10.35 package.
 - The Hand Landmarker runs in VIDEO mode with at most two hands. The first implementation uses the CPU delegate and throttles inference to roughly 11 frames per second to limit load on an 8 GB laptop.
 - Webcam source selection is available after browser device enumeration. The user must stop the stream before changing camera.
 - The video stream is requested only after a click, with audio disabled. The stream is stopped on user action and component cleanup, including cancellation during model initialization.
