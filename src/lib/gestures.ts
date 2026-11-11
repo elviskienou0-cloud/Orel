@@ -32,7 +32,7 @@ export const GESTURE_LABELS: Record<GestureName, string> = {
 };
 
 export const GESTURE_ACTIONS: Record<Exclude<GestureName, "unknown">, string> = {
-  open_palm: "Afficher l'interface 3D",
+  open_palm: "Activer le mode 3D sur cette page",
   fist: "Revenir à l'accueil",
   point: "Pointer un élément (préparation)",
   pinch: "Sélectionner (préparation)",
