@@ -1,8 +1,14 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import type { HandPointer } from "../lib/gestures";
 
-export default function Scene3D() {
+type Props = { handControl?: HandPointer };
+
+export default function Scene3D({ handControl }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const handControlRef = useRef<HandPointer | undefined>(handControl);
+
+  useEffect(() => { handControlRef.current = handControl; }, [handControl]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -93,13 +99,24 @@ export default function Scene3D() {
     );
     scene.add(stars);
 
+    const targetScale = new THREE.Vector3(1, 1, 1);
     let frame = 0;
     let animationId = 0;
     const animate = () => {
       animationId = window.requestAnimationFrame(animate);
       frame += 0.006;
-      core.rotation.x += 0.0018;
-      core.rotation.y += 0.003;
+      const control = handControlRef.current;
+      if (control?.active) {
+        core.rotation.y = THREE.MathUtils.lerp(core.rotation.y, (0.5 - control.x) * 2.4, 0.12);
+        core.rotation.x = THREE.MathUtils.lerp(core.rotation.x, (control.y - 0.5) * 1.8, 0.12);
+        targetScale.setScalar(control.gesture === "pinch" ? 1.24 : 1);
+        core.scale.lerp(targetScale, 0.12);
+      } else {
+        core.rotation.x += 0.0018;
+        core.rotation.y += 0.003;
+        targetScale.setScalar(1);
+        core.scale.lerp(targetScale, 0.08);
+      }
       inner.rotation.y -= 0.002;
       ringA.rotation.z += 0.0018;
       ringB.rotation.z -= 0.0012;
