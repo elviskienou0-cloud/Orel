@@ -29,7 +29,14 @@ function readMemoryEnabled(): boolean {
 function readConfig(): AiConfig {
   try {
     const saved = localStorage.getItem(CONFIG_KEY);
-    return saved ? { ...defaultConfig, ...JSON.parse(saved) as Partial<AiConfig> } : defaultConfig;
+    if (!saved) return defaultConfig;
+    const parsed: unknown = JSON.parse(saved);
+    if (typeof parsed !== "object" || parsed === null) return defaultConfig;
+    const value = parsed as Record<string, unknown>;
+    return {
+      endpoint: typeof value.endpoint === "string" ? value.endpoint : defaultConfig.endpoint,
+      model: typeof value.model === "string" ? value.model : defaultConfig.model
+    };
   } catch {
     return defaultConfig;
   }
