@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-open-allowed-app"
+description = "Autorise uniquement le lancement des applications Windows prédéfinies par OREL."
+commands.allow = ["open_allowed_app"]
