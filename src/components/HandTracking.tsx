@@ -127,7 +127,15 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
         rafRef.current = requestAnimationFrame(draw);
         if (now - lastFrameRef.current < 90 || videoRef.current.readyState < 2) return;
         lastFrameRef.current = now;
-        const result = landmarkerRef.current.detectForVideo(videoRef.current, now);
+        let result: { landmarks: Landmark[][] };
+        try {
+          result = landmarkerRef.current.detectForVideo(videoRef.current, now);
+        } catch (error) {
+          stopCamera();
+          const reason = error instanceof Error ? error.message : "Erreur de détection inconnue.";
+          setMessage(`Le suivi des mains a été interrompu : ${reason}`);
+          return;
+        }
         const canvas = canvasRef.current;
         const context = canvas?.getContext("2d");
         if (!canvas || !context || !videoRef.current) return;
