@@ -12,7 +12,7 @@
 ## Runtime assets
 
 The first activation downloads:
-- MediaPipe Tasks Vision WebAssembly files from jsDelivr, pinned to version 0.10.22.
+- MediaPipe Tasks Vision WebAssembly files from jsDelivr, pinned to version 0.10.35.
 - The Hand Landmarker float16 model from Google's public MediaPipe model storage.
 
 The model runs locally after download. OREL does not upload webcam frames. A network connection is required for the initial download unless the browser already has cached assets.
