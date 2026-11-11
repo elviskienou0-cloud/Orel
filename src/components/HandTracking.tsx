@@ -94,7 +94,7 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
       setMessage("Chargement du moteur de vision et du modèle de main…");
       const vision = await import("@mediapipe/tasks-vision");
       const fileset = await vision.FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
       );
       if (disposedRef.current || token !== startTokenRef.current) {
         stream.getTracks().forEach((track) => track.stop());

@@ -3,8 +3,9 @@ import {
   Activity, AudioLines, Camera, Check, Command, Hand, Layers3, LockKeyhole,
   Mic, MicOff, Send, Settings2, ShieldCheck, Sparkles, Trash2, Volume2, VolumeX
 } from "lucide-react";
-import { clearMessages, loadMessages, saveMessages, type ChatMessage } from "./lib/memory";
-import { askOllama } from "./lib/ollama";
+import { clearMessages, exportMessages, importMessages, loadMessages, saveMessages, type ChatMessage } from "./lib/memory";
+import { askOllama, checkOllama } from "./lib/ollama";
+import { allowedDesktopApps, isDesktopRuntime, openAllowedApp, type AllowedDesktopApp } from "./lib/platform";
 import { listenOnce, speak } from "./lib/voice";
 import HandTracking from "./components/HandTracking";
 import type { GestureName, HandPointer } from "./lib/gestures";
@@ -65,7 +66,13 @@ export default function App() {
   const [config, setConfig] = useState<AiConfig>(() => readConfig());
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [memoryQuery, setMemoryQuery] = useState("");
+  const [checkingOllama, setCheckingOllama] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState("Non vérifié");
+  const [desktopBusy, setDesktopBusy] = useState(false);
   const cancelListening = useRef<(() => void) | null>(null);
+  const requestAbort = useRef<AbortController | null>(null);
+  const memoryFileRef = useRef<HTMLInputElement>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,7 +85,11 @@ export default function App() {
     chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
 
-  useEffect(() => () => cancelListening.current?.(), []);
+  useEffect(() => () => {
+    cancelListening.current?.();
+    requestAbort.current?.abort();
+    window.speechSynthesis?.cancel();
+  }, []);
 
   function addMessage(role: ChatMessage["role"], content: string) {
     const message: ChatMessage = {
@@ -97,15 +108,22 @@ export default function App() {
     addMessage("user", prompt);
     setBusy(true);
     setNotice("");
+    const controller = new AbortController();
+    requestAbort.current = controller;
     try {
       const local = localReply(prompt);
-      const answer = local ?? await askOllama(config, messages, prompt);
+      const answer = local ?? await askOllama(config, messages, prompt, controller.signal);
       addMessage("assistant", answer);
       if (voiceReplies) speak(answer);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "Erreur inconnue.";
-      addMessage("assistant", `Je ne peux pas encore traiter cette demande. ${reason} Pour activer les réponses intelligentes, démarre Ollama sur cet ordinateur et vérifie le modèle configuré.`);
+      if (controller.signal.aborted) {
+        addMessage("assistant", "Requête annulée.");
+      } else {
+        const reason = error instanceof Error ? error.message : "Erreur inconnue.";
+        addMessage("assistant", "Je ne peux pas encore traiter cette demande. " + reason + " Vérifie Ollama et le modèle configuré.");
+      }
     } finally {
+      if (requestAbort.current === controller) requestAbort.current = null;
       setBusy(false);
     }
   }
@@ -146,6 +164,10 @@ export default function App() {
         setListening(false);
         cancelListening.current = null;
         setNotice(message);
+      },
+      () => {
+        setListening(false);
+        cancelListening.current = null;
       }
     );
     cancelListening.current = stop;
@@ -167,6 +189,66 @@ export default function App() {
       setGestureNotice(`Geste reconnu : ${gesture}. Navigation vers ${destination}.`);
     } else {
       setGestureNotice(`Geste reconnu : ${gesture}. ${gestureShortcuts ? "Aucun raccourci associé." : "Active les raccourcis pour autoriser la navigation gestuelle."}`);
+    }
+  }
+
+  async function testOllama() {
+    setCheckingOllama(true);
+    setOllamaStatus("Connexion…");
+    setNotice("");
+    try {
+      const models = await checkOllama(config);
+      const installed = models.includes(config.model.trim());
+      setOllamaStatus(installed ? "Connecté · modèle disponible" : "Connecté · modèle absent");
+      setNotice(installed ? "Ollama répond et le modèle configuré est installé." : "Ollama répond, mais le modèle " + config.model.trim() + " est absent. Télécharge-le avec Ollama avant de l’utiliser.");
+    } catch (error) {
+      setOllamaStatus("Indisponible");
+      setNotice(error instanceof Error ? error.message : "Connexion à Ollama impossible.");
+    } finally {
+      setCheckingOllama(false);
+    }
+  }
+
+  function exportMemoryFile() {
+    const blob = new Blob([exportMessages(messages)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "orel-memory-" + new Date().toISOString().slice(0, 10) + ".json";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice("Sauvegarde exportée. Le fichier contient tes conversations.");
+  }
+
+  async function importMemoryFile(file: File) {
+    if (file.size > 2_000_000) {
+      setNotice("Le fichier dépasse la taille maximale de 2 Mo.");
+      return;
+    }
+    try {
+      const imported = importMessages(await file.text());
+      if (!window.confirm("Remplacer l’historique actuel par " + imported.length + " messages importés ?")) return;
+      setMessages(imported);
+      setNotice(imported.length + " messages restaurés depuis la sauvegarde.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Import de mémoire impossible.");
+    }
+  }
+
+  async function launchDesktopApp(appId: AllowedDesktopApp, label: string) {
+    if (!isDesktopRuntime()) {
+      setNotice("Les actions Windows sont disponibles uniquement dans l’application OREL installée.");
+      return;
+    }
+    if (!window.confirm("Autoriser OREL à ouvrir " + label + " ?")) return;
+    setDesktopBusy(true);
+    try {
+      await openAllowedApp(appId);
+      setNotice(label + " a été lancé. L’action est inscrite dans le journal local OREL.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Impossible de lancer cette application.");
+    } finally {
+      setDesktopBusy(false);
     }
   }
 
@@ -223,6 +305,7 @@ export default function App() {
           </div>
           <form className="composer" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>
             <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Écris une instruction à OREL…" aria-label="Message à OREL"/>
+            {busy && <button type="button" className="quiet-button" onClick={() => requestAbort.current?.abort()}>Annuler</button>}
             <button type="button" className={listening ? "icon-button listening" : "icon-button"} onClick={startListening} aria-label={listening ? "Arrêter l'écoute" : "Parler à OREL"}>{listening ? <MicOff size={18}/> : <Mic size={18}/>}</button>
             <button type="submit" className="send-button" disabled={busy || !draft.trim()} aria-label="Envoyer"><Send size={17}/></button>
           </form>
@@ -236,16 +319,18 @@ export default function App() {
             <article className="permission-row"><div><Camera size={19}/><div><strong>Caméra</strong><small>{cameraReady ? "Accès testé puis flux arrêté" : "Non activée dans cette session"}</small></div></div><button className="secondary-button" onClick={requestCamera}>{cameraReady ? <Check size={15}/> : <Camera size={15}/>} {cameraReady ? "Vérifiée" : "Autoriser et tester"}</button></article>
             <article className="permission-row"><div><Mic size={19}/><div><strong>Microphone</strong><small>{microphoneReady ? "Reconnaissance vocale utilisée" : "Demande au premier usage vocal"}</small></div></div><button className="secondary-button" onClick={startListening}>{listening ? "Arrêter" : "Tester le micro"}</button></article>
             <article className="permission-row"><div><Activity size={19}/><div><strong>Mémoire locale</strong><small>{memoryEnabled ? "Conversations conservées sur cet appareil" : "Aucune conversation conservée"}</small></div></div><button className="secondary-button" onClick={() => setMemoryEnabled((value) => !value)}>{memoryEnabled ? "Désactiver" : "Activer"}</button></article>
-            <article className="permission-row restricted"><div><Settings2 size={19}/><div><strong>Contrôle de Windows</strong><small>Indisponible dans le navigateur. Nécessitera une application desktop et une liste d'actions autorisées.</small></div></div><span className="locked-label">Verrouillé</span></article>
+            <article className="permission-row restricted"><div><Settings2 size={19}/><div><strong>Actions Windows limitées</strong><small>{isDesktopRuntime() ? "Tauri est actif. Seules les applications listées ci-dessous peuvent être lancées." : "Navigateur : aucun accès Windows. Installe la version desktop pour activer les actions autorisées."}</small></div></div><span className="locked-label">{isDesktopRuntime() ? "Accès limité" : "Verrouillé"}</span></article>
+            <div className="desktop-app-actions">{allowedDesktopApps.map((app) => <button key={app.id} className="secondary-button" disabled={!isDesktopRuntime() || desktopBusy} onClick={() => void launchDesktopApp(app.id, app.label)}>Ouvrir {app.label}</button>)}</div>
+            <p className="panel-description">Aucun terminal, script, argument libre ou accès global aux fichiers n’est exposé. Chaque lancement demande confirmation et est journalisé.</p>
           </div>
           {notice && <p className="notice" role="status">{notice}</p>}
         </section>}
 
         {active === "Voix" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">INTERACTION VOCALE</span><h2>Voix d'OREL</h2></div><AudioLines size={22}/></div><p className="panel-description">La reconnaissance vocale dépend du navigateur. La synthèse vocale utilise les voix installées sur Windows.</p><div className="voice-actions"><button className="primary-button" onClick={startListening}>{listening ? <MicOff size={17}/> : <Mic size={17}/>} {listening ? "Arrêter l'écoute" : "Démarrer l'écoute"}</button><button className="secondary-button" onClick={() => speak("Bonjour. Je suis OREL. Je suis prêt.")}><Volume2 size={16}/> Tester la voix</button><button className="secondary-button" onClick={() => window.speechSynthesis?.cancel()}><VolumeX size={16}/> Arrêter la lecture</button></div>{notice && <p className="notice">{notice}</p>}</section>}
 
-        {active === "Mémoire" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">DONNÉES LOCALES</span><h2>Mémoire d'OREL</h2></div><Activity size={22}/></div><p className="panel-description">OREL conserve au maximum 100 messages dans le stockage local du navigateur. Ces données ne sont pas synchronisées vers un serveur.</p><div className="memory-summary"><strong>{memoryEnabled ? messages.length : 0}</strong><span>messages conservés</span><button className="quiet-button" onClick={eraseMemory}><Trash2 size={15}/> Tout effacer</button></div><button className="secondary-button" onClick={() => setMemoryEnabled((value) => !value)}>{memoryEnabled ? "Désactiver la mémoire" : "Activer la mémoire"}</button></section>}
+        {active === "Mémoire" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">DONNÉES LOCALES</span><h2>Mémoire d’OREL</h2></div><Activity size={22}/></div><p className="panel-description">Jusqu’à 100 messages sont conservés dans le stockage local de ce navigateur. Rien n’est synchronisé vers un serveur. Les sauvegardes exportées contiennent tes conversations.</p><div className="memory-summary"><strong>{memoryEnabled ? messages.length : 0}</strong><span>messages conservés</span><button className="quiet-button" onClick={eraseMemory}><Trash2 size={15}/> Tout effacer</button></div><div className="memory-tools"><button className="secondary-button" onClick={() => setMemoryEnabled((value) => !value)}>{memoryEnabled ? "Désactiver la mémoire" : "Activer la mémoire"}</button><button className="secondary-button" onClick={exportMemoryFile} disabled={!memoryEnabled || !messages.length}>Exporter JSON</button><button className="secondary-button" onClick={() => memoryFileRef.current?.click()} disabled={!memoryEnabled}>Importer JSON</button><input ref={memoryFileRef} type="file" accept="application/json,.json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void importMemoryFile(file); event.target.value = ""; }}/></div><label className="memory-search">Rechercher dans l’historique<input type="search" value={memoryQuery} onChange={(event) => setMemoryQuery(event.target.value)} placeholder="Mot ou expression…"/></label><div className="memory-list">{(memoryEnabled ? messages : []).filter((message) => message.content.toLocaleLowerCase("fr-FR").includes(memoryQuery.trim().toLocaleLowerCase("fr-FR"))).slice().reverse().map((message) => <article className="memory-item" key={message.id}><span>{message.role === "user" ? "TOI" : "OREL"} · {new Date(message.createdAt).toLocaleString("fr-FR")}</span><p>{message.content}</p></article>)}{memoryEnabled && messages.length > 0 && !messages.some((message) => message.content.toLocaleLowerCase("fr-FR").includes(memoryQuery.trim().toLocaleLowerCase("fr-FR"))) && <p className="muted">Aucun message correspondant.</p>}</div></section>}
 
-        {active === "Vision & gestes" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">VISION PAR ORDINATEUR</span><h2>Suivi des mains</h2></div><Hand size={22}/></div><p className="panel-description">MediaPipe détecte jusqu'à deux mains et leurs 21 points de repère. Le traitement vidéo s'effectue localement. Le premier démarrage télécharge le moteur WebAssembly et le modèle de détection.</p><HandTracking onGesture={handleGesture} onPointer={setHandPointer}/><div className="gesture-shortcuts"><label><input type="checkbox" checked={gestureShortcuts} onChange={(event) => setGestureShortcuts(event.target.checked)}/> Autoriser les raccourcis de navigation par gestes</label><p>Paume ouverte : mode 3D · Poing : accueil · Deux doigts : assistant. Index : orienter le noyau 3D · Pincement : agrandir le noyau.</p><p className="notice" role="status">{gestureNotice}</p></div><div className="panel-heading vision-3d-heading"><div><span className="eyebrow">CONTRÔLE SPATIAL</span><h2>Interaction 3D par la main</h2></div></div><p className="panel-description">Index pointé : orienter le noyau. Pincement pouce-index : agrandir le noyau. Garde la main visible dans la caméra pendant le contrôle.</p><Scene3D handControl={handPointer}/></section>}
+        {active === "Vision & gestes" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">VISION PAR ORDINATEUR</span><h2>Suivi des mains</h2></div><Hand size={22}/></div><p className="panel-description">MediaPipe détecte jusqu'à deux mains et leurs 21 points de repère. Le traitement vidéo s'effectue localement. Le premier démarrage télécharge le moteur WebAssembly et le modèle de détection.</p><HandTracking onGesture={handleGesture} onPointer={setHandPointer}/><div className="gesture-shortcuts"><label><input type="checkbox" checked={gestureShortcuts} onChange={(event) => setGestureShortcuts(event.target.checked)}/> Autoriser les raccourcis de navigation par gestes</label><p>Paume ouverte : mode 3D · Poing : accueil · Deux doigts : assistant. Index : orienter le noyau 3D · Pincement : agrandir le noyau.</p><p className="notice" role="status">{gestureNotice}</p></div><div className="panel-heading vision-3d-heading"><div><span className="eyebrow">CONTRÔLE SPATIAL</span><h2>Interaction 3D par la main</h2></div></div><p className="panel-description">Index pointé : orienter le noyau. Pincement pouce-index : agrandir le noyau. Garde la main visible dans la caméra pendant le contrôle.</p><Suspense fallback={<p>Chargement du noyau 3D…</p>}><Scene3D handControl={handPointer}/></Suspense></section>}
 
         {active === "Interface 3D" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">RENDU SPATIAL</span><h2>Noyau 3D</h2></div><Layers3 size={22}/></div><Suspense fallback={<p>Chargement de la scène…</p>}><Scene3D handControl={handPointer}/></Suspense><p className="panel-description">Scène Three.js animée. Pour contrôler le noyau avec la main, active la caméra dans Vision & gestes.</p></section>}
 
@@ -255,10 +340,10 @@ export default function App() {
         <section className="workspace config-panel">
           <div className="panel-heading"><div><span className="eyebrow">MOTEUR DE CONVERSATION</span><h2>Connexion IA locale</h2></div><Settings2 size={20}/></div>
           <p className="panel-description">Configuration facultative pour Ollama installé sur ce PC. Aucun compte ni clé API n'est envoyé. Si le serveur n'est pas lancé, seules les réponses locales simples fonctionnent.</p>
-          <div className="config-fields"><label>Adresse du serveur<input value={config.endpoint} onChange={(event) => setConfig((value) => ({...value, endpoint:event.target.value}))}/></label><label>Modèle<input value={config.model} onChange={(event) => setConfig((value) => ({...value, model:event.target.value}))}/></label><button className="secondary-button" onClick={saveConfig}><Check size={15}/> Enregistrer</button></div>
+          <div className="config-fields"><label>Adresse du serveur<input value={config.endpoint} onChange={(event) => setConfig((value) => ({...value, endpoint:event.target.value}))}/></label><label>Modèle<input value={config.model} onChange={(event) => setConfig((value) => ({...value, model:event.target.value}))}/></label><button className="secondary-button" onClick={saveConfig}><Check size={15}/> Enregistrer</button><button className="secondary-button" onClick={() => void testOllama()} disabled={checkingOllama}>{checkingOllama ? "Test…" : "Tester la connexion"}</button><span className="ollama-status" role="status">État : {ollamaStatus}</span></div>
         </section>
 
-        <footer><span>OREL V0.2.0 · ASSISTANT CORE</span><span>Accès contrôlés · Windows first</span></footer>
+        <footer><span>OREL V0.2.0 · ASSISTANT CORE</span><span>{isDesktopRuntime() ? "Desktop Tauri · Windows" : "Mode navigateur · accès système désactivé"}</span></footer>
       </section>
     </main>
   );
