@@ -7,7 +7,6 @@ function distance(a: Landmark, b: Landmark): number {
 
 export function classifyGesture(points: Landmark[]): GestureName {
   if (points.length < 21) return "unknown";
-  const wrist = points[0];
   const indexUp = points[8].y < points[6].y;
   const middleUp = points[12].y < points[10].y;
   const ringUp = points[16].y < points[14].y;
