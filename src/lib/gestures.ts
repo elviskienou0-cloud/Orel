@@ -38,3 +38,5 @@ export const GESTURE_ACTIONS: Record<Exclude<GestureName, "unknown">, string> = 
   pinch: "Sélectionner (préparation)",
   victory: "Ouvrir l'assistant"
 };
+
+export type HandPointer = { x: number; y: number; gesture: GestureName; active: boolean };
