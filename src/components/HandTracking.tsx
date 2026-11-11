@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Hand, LoaderCircle } from "lucide-react";
 import { classifyGesture, GESTURE_ACTIONS, GESTURE_LABELS, type GestureName, type Landmark } from "../lib/gestures";
 
-type Props = { onGesture?: (gesture: Exclude<GestureName, "unknown">) => void };
+type Props = { onGesture?: (gesture: Exclude<GestureName, "unknown">) => void; onPointer?: (pointer: {x:number;y:number;gesture:GestureName;active:boolean}) => void };
 
-export default function HandTracking({ onGesture }: Props) {
+export default function HandTracking({ onGesture, onPointer }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -18,6 +18,7 @@ export default function HandTracking({ onGesture }: Props) {
   const candidateSinceRef = useRef(0);
   const lastSentRef = useRef<GestureName>("unknown");
   const callbackRef = useRef(onGesture);
+  const pointerCallbackRef = useRef(onPointer);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gesture, setGesture] = useState<GestureName>("unknown");
@@ -27,6 +28,7 @@ export default function HandTracking({ onGesture }: Props) {
   const [message, setMessage] = useState("La caméra reste inactive jusqu'à ton autorisation.");
 
   useEffect(() => { callbackRef.current = onGesture; }, [onGesture]);
+  useEffect(() => { pointerCallbackRef.current = onPointer; }, [onPointer]);
 
   async function refreshCameras() {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -61,6 +63,7 @@ export default function HandTracking({ onGesture }: Props) {
     setLoading(false);
     setHands(0);
     setGesture("unknown");
+    pointerCallbackRef.current?.({ x: 0.5, y: 0.5, gesture: "unknown", active: false });
     setMessage("Caméra arrêtée. Le flux vidéo a été libéré.");
   }
 
@@ -156,8 +159,14 @@ export default function HandTracking({ onGesture }: Props) {
           }
         });
         setHands(result.landmarks.length);
-        const current = result.landmarks[0] ? classifyGesture(result.landmarks[0]) : "unknown";
+        const primaryHand = result.landmarks[0];
+        const current = primaryHand ? classifyGesture(primaryHand) : "unknown";
         setGesture(current);
+        if (primaryHand) {
+          pointerCallbackRef.current?.({ x: primaryHand[8].x, y: primaryHand[8].y, gesture: current, active: current === "point" || current === "pinch" });
+        } else {
+          pointerCallbackRef.current?.({ x: 0.5, y: 0.5, gesture: "unknown", active: false });
+        }
         if (current !== candidateRef.current) {
           candidateRef.current = current;
           candidateSinceRef.current = now;
@@ -191,6 +200,7 @@ export default function HandTracking({ onGesture }: Props) {
       cancelAnimationFrame(rafRef.current);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       landmarkerRef.current?.close();
+      pointerCallbackRef.current?.({ x: 0.5, y: 0.5, gesture: "unknown", active: false });
     };
   }, []);
 
