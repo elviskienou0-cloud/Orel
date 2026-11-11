@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, feat/orel-v1-finalization-20261111]
+    branches: [main, feat/orel-v1-finalization-20261111, fix/orel-reconcile-main-20261111]
 
 permissions:
   contents: read
