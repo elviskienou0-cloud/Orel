@@ -5,6 +5,8 @@ import type { ChatMessage } from "../lib/memory";
 import {
   findPanelAtPoint,
   movePanelToPointer,
+  loadSpatialPanelPositions,
+  saveSpatialPanelPositions,
   type SpatialPanelId,
   type SpatialPanelPositions
 } from "../lib/spatial";
@@ -36,12 +38,13 @@ export default function SpatialWorkspace({ handPointer, onPointer, messages, onN
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const lastPinchRef = useRef(false);
-  const [positions, setPositions] = useState<SpatialPanelPositions>(initialPositions);
+  const [positions, setPositions] = useState<SpatialPanelPositions>(() => loadSpatialPanelPositions(initialPositions));
   const positionsRef = useRef(positions);
   const latestMessage = messages[messages.length - 1];
 
   useEffect(() => {
     positionsRef.current = positions;
+    saveSpatialPanelPositions(positions);
   }, [positions]);
 
   useEffect(() => {
