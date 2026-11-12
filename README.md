@@ -68,3 +68,12 @@ La compilation desktop et les gestes réels doivent être validés sur Windows. 
 - Conversations stockées localement jusqu'à export manuel.
 - Ne jamais committer de secrets, jetons, mots de passe ou fichiers .env.
 - Android est préparé architecturalement, mais aucun APK n'est livré par cette branche.
+
+## Commandes Windows depuis la conversation
+
+Dans OREL Desktop sous Windows, l'assistant reconnaît actuellement quelques commandes explicites :
+- « OREL, ouvre la calculatrice »
+- « Ouvre le Bloc-notes »
+- « Lance l'explorateur de fichiers »
+
+OREL demande une confirmation avant chaque lancement et affiche le résultat dans la conversation. Ces commandes réutilisent uniquement la liste blanche native déjà présente. Les formulations inconnues ou les demandes combinant plusieurs actions ne déclenchent pas d'action Windows. Le routage général de missions et le contrôle du clavier ne sont pas encore disponibles.
