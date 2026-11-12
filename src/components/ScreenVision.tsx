@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Eye, MonitorUp } from "lucide-react";
+import { CameraOff, Eye, MonitorUp } from "lucide-react";
 import { analyzeScreenWithOllama, type OllamaConfig } from "../lib/ollama";
 
 type Props = { config: OllamaConfig };
