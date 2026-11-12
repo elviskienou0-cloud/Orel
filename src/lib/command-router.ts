@@ -10,7 +10,7 @@ function normalizeCommand(input: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("fr-FR")
     .replace(/[.!?]+$/g, "")
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
