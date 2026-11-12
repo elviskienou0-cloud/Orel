@@ -97,6 +97,7 @@ export default function App() {
   }, [messages, busy]);
 
   useEffect(() => () => {
+    handsFreeRef.current = false;
     cancelListening.current?.();
     requestAbort.current?.abort();
     window.speechSynthesis?.cancel();
