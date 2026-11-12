@@ -77,3 +77,22 @@ Dans OREL Desktop sous Windows, l'assistant reconnaît actuellement quelques com
 - « Lance l'explorateur de fichiers »
 
 OREL demande une confirmation avant chaque lancement et affiche le résultat dans la conversation. Ces commandes réutilisent uniquement la liste blanche native déjà présente. Les formulations inconnues ou les demandes combinant plusieurs actions ne déclenchent pas d'action Windows. Le routage général de missions et le contrôle du clavier ne sont pas encore disponibles.
+
+
+## OREL HOLO : vision écran et missions
+
+- **Vision écran** : partage manuel d'un onglet, d'une fenêtre ou de l'écran. OREL n'effectue aucune capture tant que l'utilisateur ne clique pas sur « Analyser la capture ». L'analyse utilise le modèle configuré sur le serveur Ollama local ; un modèle compatible avec les images est nécessaire.
+- **Planificateur de missions** : transforme un objectif en 2 à 8 étapes structurées et conserve la progression localement. Les cases sont cochées par l'utilisateur ; cette version ne prétend pas exécuter automatiquement les étapes.
+- **Interface spatiale** : conserve le noyau Three.js et les panneaux manipulables à la souris ou par pincement.
+
+## Préparation Android
+
+Le dépôt conserve une architecture Tauri 2 compatible avec une initialisation Android, mais le projet natif Android et l'APK ne sont pas encore générés ni validés dans cette branche. Sur une machine configurée avec Android Studio/SDK, NDK, JDK 17 et les cibles Rust Android, utiliser :
+
+```bash
+npm run mobile:android:init
+npm run mobile:android:dev
+npm run mobile:android:build
+```
+
+L'initialisation crée les fichiers natifs Android à auditer avant commit. La compilation Android doit être validée sur un environnement équipé du SDK ; elle ne peut pas être certifiée par le build web.
