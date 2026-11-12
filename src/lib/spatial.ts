@@ -43,3 +43,32 @@ export function movePanelToPointer(
     y: clamp((pointerY - offsetY) / stageHeight, 0, maxY / stageHeight)
   };
 }
+
+
+const SPATIAL_STORAGE_KEY = "orel.spatial-panels.v1";
+
+export function loadSpatialPanelPositions(fallback: SpatialPanelPositions): SpatialPanelPositions {
+  try {
+    const raw = localStorage.getItem(SPATIAL_STORAGE_KEY);
+    if (!raw) return fallback;
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== "object" || value === null) return fallback;
+    const record = value as Record<string, unknown>;
+    const ids: SpatialPanelId[] = ["assistant", "memory", "vision"];
+    const next = { ...fallback };
+    for (const id of ids) {
+      const point = record[id];
+      if (typeof point !== "object" || point === null) continue;
+      const position = point as Record<string, unknown>;
+      if (typeof position.x === "number" && Number.isFinite(position.x) && typeof position.y === "number" && Number.isFinite(position.y)) {
+        next[id] = { x: clamp(position.x, 0, 1), y: clamp(position.y, 0, 1) };
+      }
+    }
+    return next;
+  } catch { return fallback; }
+}
+
+export function saveSpatialPanelPositions(positions: SpatialPanelPositions): void {
+  try { localStorage.setItem(SPATIAL_STORAGE_KEY, JSON.stringify(positions)); }
+  catch { /* Spatial layout remains usable for this session. */ }
+}
