@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Hand, LoaderCircle } from "lucide-react";
 import { classifyGesture, GESTURE_ACTIONS, GESTURE_LABELS, type GestureName, type Landmark } from "../lib/gestures";
+import { smoothPointer } from "../lib/hand-control";
 
 type Props = { onGesture?: (gesture: Exclude<GestureName, "unknown">) => void; onPointer?: (pointer: {x:number;y:number;gesture:GestureName;active:boolean}) => void };
 
@@ -190,10 +191,7 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
         setGesture(current);
         if (primaryHand) {
           const raw = { x: 1 - primaryHand[8].x, y: primaryHand[8].y };
-          const previous = pointerSmoothRef.current;
-          const smoothed = previous
-            ? { x: previous.x + (raw.x - previous.x) * 0.42, y: previous.y + (raw.y - previous.y) * 0.42 }
-            : raw;
+          const smoothed = smoothPointer(pointerSmoothRef.current, raw, 0.42);
           pointerSmoothRef.current = smoothed;
           pointerCallbackRef.current?.({ x: smoothed.x, y: smoothed.y, gesture: current, active: current === "point" || current === "pinch" || current === "victory" });
         } else {
