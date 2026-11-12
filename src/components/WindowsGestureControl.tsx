@@ -15,6 +15,7 @@ export default function WindowsGestureControl() {
   const [lastAction, setLastAction] = useState("En attente");
   const pressedRef = useRef(false);
   const previousYRef = useRef<number | null>(null);
+  const pinchSinceRef = useRef<number | null>(null);
   const lastScrollRef = useRef(0);
   const busyRef = useRef(false);
 
@@ -37,6 +38,7 @@ export default function WindowsGestureControl() {
     if (!enabled) {
       releaseButton();
       previousYRef.current = null;
+      pinchSinceRef.current = null;
       return;
     }
     const stopOnEscape = (event: KeyboardEvent) => {
@@ -64,11 +66,13 @@ export default function WindowsGestureControl() {
     if (!pointer.active) {
       releaseButton();
       previousYRef.current = null;
+      pinchSinceRef.current = null;
       return;
     }
 
     if (pointer.gesture === "victory") {
       releaseButton();
+      pinchSinceRef.current = null;
       if (previousYRef.current !== null) {
         const delta = Math.round((previousYRef.current - pointer.y) * 1400);
         const now = Date.now();
@@ -94,6 +98,9 @@ export default function WindowsGestureControl() {
       .finally(() => { busyRef.current = false; });
 
     if (pointer.gesture === "pinch" && !pressedRef.current) {
+      const now = Date.now();
+      if (pinchSinceRef.current === null) pinchSinceRef.current = now;
+      if (now - pinchSinceRef.current < 120) return;
       pressedRef.current = true;
       void setWindowsLeftButton(true).then(() => setLastAction("Clic maintenu / glisser-déposer"))
         .catch((error) => {
@@ -101,6 +108,7 @@ export default function WindowsGestureControl() {
           setNotice(error instanceof Error ? error.message : "Clic impossible.");
         });
     } else if (pointer.gesture !== "pinch") {
+      pinchSinceRef.current = null;
       releaseButton();
     }
   }, [desktop, enabled, releaseButton, screen, sensitivity]);
