@@ -156,9 +156,6 @@ fn move_mouse(x: f64, y: f64) -> Result<(), String> {
 fn set_left_mouse_button(app: tauri::AppHandle, pressed: bool) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-            SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT,
-        };
         append_input_audit(&app, if pressed { "mouse_left_down" } else { "mouse_left_up" })?;
         send_left_button(pressed)
     }
