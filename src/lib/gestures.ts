@@ -5,7 +5,7 @@ function distance(a: Landmark, b: Landmark): number {
   return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-export function classifyGesture(points: Landmark[]): GestureName {
+export function classifyGesture(points: Landmark[], pinchThreshold = 0.055): GestureName {
   if (points.length < 21) return "unknown";
   const indexUp = points[8].y < points[6].y;
   const middleUp = points[12].y < points[10].y;
@@ -14,7 +14,7 @@ export function classifyGesture(points: Landmark[]): GestureName {
   const thumbOpen = distance(points[4], points[5]) > distance(points[3], points[5]) * 1.12;
   const pinchDistance = distance(points[4], points[8]);
 
-  if (pinchDistance < 0.055) return "pinch";
+  if (pinchDistance < pinchThreshold) return "pinch";
   if (indexUp && middleUp && !ringUp && !pinkyUp) return "victory";
   if (indexUp && !middleUp && !ringUp && !pinkyUp) return "point";
   if (indexUp && middleUp && ringUp && pinkyUp && thumbOpen) return "open_palm";

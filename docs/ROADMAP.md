@@ -5,9 +5,9 @@
 | Module | État dans cette branche | Validation restante |
 |---|---|---|
 | Interface React/Vite | Implémentée | Essais ergonomiques |
-| Noyau Three.js | Prototype interactif | Étendre les panneaux et interactions |
+| Noyau Three.js et espace de travail | Noyau animé et panneaux flottants déplaçables à la souris ou par pincement | Tester le placement gestuel sur différentes tailles d’écran |
 | Caméra et suivi des mains | Prototype fonctionnel selon essais utilisateur | Profilage FPS, éclairage et stabilité |
-| Gestes | 5 gestes heuristiques | Calibration et robustesse multi-orientation |
+| Gestes | 5 gestes heuristiques, stabilité et sensibilité réglables | Calibration individuelle et robustesse multi-orientation |
 | Assistant textuel | Interface et adaptateur Ollama | Connexion réelle au modèle local |
 | Voix | API navigateur | Vérifier interruption et fin de reconnaissance |
 | Mémoire | Historique local, effacement, export/import | Recherche et essais de restauration |

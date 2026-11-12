@@ -54,6 +54,22 @@ async function fetchJsonWithTimeout(
   }
 }
 
+function compactHistory(history: ChatMessage[]): Array<{ role: "user" | "assistant"; content: string }> {
+  let remaining = 12_000;
+  const compacted: Array<{ role: "user" | "assistant"; content: string }> = [];
+  for (const message of history.slice(-12).reverse()) {
+    if (remaining <= 0) break;
+    const content = message.content.slice(-Math.min(3_000, remaining));
+    if (!content) continue;
+    compacted.unshift({
+      role: message.role === "assistant" ? "assistant" : "user",
+      content
+    });
+    remaining -= content.length;
+  }
+  return compacted;
+}
+
 export async function checkOllama(config: OllamaConfig, signal?: AbortSignal): Promise<string[]> {
   const endpoint = getEndpoint(config);
   const result = await fetchJsonWithTimeout(endpoint + "/api/tags", { method: "GET" }, signal, 8_000);
@@ -95,10 +111,7 @@ export async function askOllama(
             role: "system",
             content: "Tu es OREL, un assistant personnel. Réponds en français par défaut, clairement et honnêtement. Distingue les faits vérifiés des hypothèses. N'affirme jamais avoir effectué une action sur l'ordinateur si aucun outil autorisé ne l'a réellement exécutée. Ne demande jamais de secrets, mots de passe ou clés privées. Demande confirmation avant toute action sensible."
           },
-          ...history.slice(-12).map((message) => ({
-            role: message.role === "assistant" ? "assistant" : "user",
-            content: message.content
-          })),
+          ...compactHistory(history),
           { role: "user", content: prompt }
         ]
       })

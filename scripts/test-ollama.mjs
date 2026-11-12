@@ -32,6 +32,22 @@ try {
   );
   assert.equal(answer, "Bonjour.");
 
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(init.body);
+    const history = body.messages.slice(1, -1);
+    assert.ok(history.length <= 12);
+    assert.ok(history.reduce((sum, item) => sum + item.content.length, 0) <= 12_000);
+    return new Response(JSON.stringify({ message: { content: "Contexte compacté." } }), { status: 200 });
+  };
+  const compactedAnswer = await ollama.askOllama(
+    { endpoint: "http://localhost:11434", model: "qwen2.5:3b" },
+    Array.from({ length: 12 }, (_, index) => ({
+      id: String(index), role: index % 2 ? "assistant" : "user", content: "x".repeat(5000), createdAt: index
+    })),
+    "Dernière question"
+  );
+  assert.equal(compactedAnswer, "Contexte compacté.");
+
   await assert.rejects(
     () => ollama.checkOllama({ endpoint: "file:///etc/passwd", model: "x" }),
     /serveur Ollama local/
@@ -43,4 +59,4 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
 }
-console.log("4 Ollama adapter checks passed.");
+console.log("5 Ollama adapter checks passed.");

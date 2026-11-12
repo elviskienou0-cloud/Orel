@@ -11,9 +11,9 @@
 ## Couches
 
 - Interface : React et navigation.
-- Présentation 3D : Three.js dans un composant dédié.
+- Présentation 3D : Three.js dans un composant dédié, entouré de panneaux HTML flottants et déplaçables.
 - Vision : MediaPipe Tasks Vision et caméra du navigateur.
-- Gestes : fonctions pures convertissant les 21 points en événements sémantiques.
+- Gestes : fonctions pures convertissant les 21 points en événements sémantiques ; stabilité et seuil de pincement réglables.
 - Voix : API SpeechRecognition et SpeechSynthesis du navigateur, avec gestion de fin et d'erreur.
 - Mémoire : historique local limité à 100 messages, validation stricte, import/export JSON.
 - IA : adaptateur Ollama local avec test de connexion, délais d'attente et annulation.
@@ -52,6 +52,7 @@
 - Jusqu'à deux mains et leurs 21 points sont suivis localement.
 - Le classificateur de gestes reste heuristique et dépend de l'angle, de la lumière et de la position de la main.
 - Les raccourcis de navigation restent désactivés par défaut.
+- Dans l’espace de travail, un pincement maintenu sur un panneau permet de le déplacer ; le déplacement souris reste disponible.
 - Le premier chargement du moteur WASM et du modèle nécessite Internet.
 - L'inférence se déroule sur le thread principal et doit être profilée sur le PC cible.
 

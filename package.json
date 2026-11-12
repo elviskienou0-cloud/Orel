@@ -11,7 +11,8 @@
     "test:gestures": "node scripts/test-gestures.mjs",
     "test:memory": "node scripts/test-memory.mjs",
     "test:ollama": "node scripts/test-ollama.mjs",
-    "test": "npm run test:gestures && npm run test:memory && npm run test:ollama",
+    "test:spatial": "node scripts/test-spatial.mjs",
+    "test": "npm run test:gestures && npm run test:memory && npm run test:ollama && npm run test:spatial",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build"
   },

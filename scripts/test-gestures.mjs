@@ -43,6 +43,8 @@ assert.equal(classifyGesture(fist), "fist", "closed fist should be recognized");
 assert.equal(classifyGesture(point), "point", "index pointing should be recognized");
 assert.equal(classifyGesture(victory), "victory", "two-finger gesture should be recognized");
 assert.equal(classifyGesture(pinch), "pinch", "thumb-index pinch should be recognized");
+assert.equal(classifyGesture(pinch, 0.005), "point", "a tighter pinch threshold should reject a wider pinch");
+assert.equal(classifyGesture(pinch, 0.02), "pinch", "a wider pinch threshold should accept the same pinch");
 assert.equal(classifyGesture(hand().slice(0, 20)), "unknown", "incomplete landmarks should be ignored");
 
-console.log("6 gesture classification checks passed.");
+console.log("8 gesture classification checks passed.");
