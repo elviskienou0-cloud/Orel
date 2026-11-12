@@ -133,3 +133,70 @@ export async function askOllama(
   }
   return message.content.trim();
 }
+
+export async function analyzeScreenWithOllama(
+  config: OllamaConfig,
+  question: string,
+  imageBase64: string,
+  signal?: AbortSignal
+): Promise<string> {
+  const endpoint = getEndpoint(config);
+  const prompt = question.trim();
+  if (!prompt || prompt.length > 1_200) throw new Error("La consigne doit contenir entre 1 et 1 200 caractères.");
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(imageBase64) || imageBase64.length > 5_500_000) {
+    throw new Error("La capture d'écran est invalide ou trop volumineuse.");
+  }
+  const result = await fetchJsonWithTimeout(endpoint + "/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: config.model.trim(),
+      stream: false,
+      messages: [
+        { role: "system", content: "Tu es OREL. Analyse uniquement l'image fournie. Réponds en français, décris les éléments visibles, distingue clairement ce que tu lis de ce que tu déduis. Ne prétends pas avoir cliqué, modifié ou exécuté quoi que ce soit." },
+        { role: "user", content: prompt, images: [imageBase64] }
+      ]
+    })
+  }, signal, 120_000);
+  if (!result.response.ok) {
+    throw new Error("Ollama a répondu avec le statut " + result.response.status + ". Vérifie qu'un modèle vision est installé et sélectionné.");
+  }
+  const data = result.data;
+  if (typeof data !== "object" || data === null || !("message" in data)) {
+    throw new Error("Réponse inattendue du modèle vision Ollama.");
+  }
+  const content = (data as { message?: { content?: unknown } }).message?.content;
+  if (typeof content !== "string" || !content.trim()) {
+    throw new Error("Le modèle n'a pas renvoyé d'analyse. Le modèle sélectionné ne prend peut-être pas en charge les images.");
+  }
+  return content.trim();
+}
+
+export async function planMissionWithOllama(
+  config: OllamaConfig,
+  objective: string,
+  signal?: AbortSignal
+): Promise<string> {
+  const endpoint = getEndpoint(config);
+  const prompt = objective.trim();
+  if (!prompt || prompt.length > 3_000) throw new Error("L'objectif doit contenir entre 1 et 3 000 caractères.");
+  const result = await fetchJsonWithTimeout(endpoint + "/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: config.model.trim(),
+      stream: false,
+      format: "json",
+      messages: [
+        { role: "system", content: "Tu es le planificateur d'OREL. Décompose l'objectif en 2 à 8 étapes concrètes et ordonnées. Ne prétends jamais exécuter une étape. N'inclus aucune commande shell, aucun script et aucune action destructive. Réponds uniquement en JSON avec les clés title, summary et steps, où steps est un tableau de chaînes courtes." },
+        { role: "user", content: "Prépare un plan pour cet objectif : " + prompt }
+      ]
+    })
+  }, signal, 120_000);
+  if (!result.response.ok) throw new Error("Ollama a répondu avec le statut " + result.response.status + ".");
+  const data = result.data;
+  if (typeof data !== "object" || data === null || !("message" in data)) throw new Error("Réponse inattendue du planificateur Ollama.");
+  const content = (data as { message?: { content?: unknown } }).message?.content;
+  if (typeof content !== "string" || !content.trim()) throw new Error("Le planificateur n'a pas renvoyé de plan.");
+  return content.trim();
+}
