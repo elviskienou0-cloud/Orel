@@ -21,4 +21,21 @@ const moved = spatial.movePanelToPointer(990, 590, 1000, 600, 10, 10);
 assert.ok(moved.x <= 1 - spatial.SPATIAL_PANEL_WIDTH / 1000);
 assert.ok(moved.y <= 1 - spatial.SPATIAL_PANEL_HEIGHT / 600);
 assert.deepEqual(spatial.movePanelToPointer(10, 10, 0, 0, 0, 0), { x: 0, y: 0 });
-console.log("6 spatial panel interaction checks passed.");
+const storage = new Map();
+globalThis.localStorage = {
+  getItem: (key) => storage.has(key) ? storage.get(key) : null,
+  setItem: (key, value) => storage.set(key, value),
+  removeItem: (key) => storage.delete(key)
+};
+spatial.saveSpatialPanelPositions(positions);
+assert.deepEqual(spatial.loadSpatialPanelPositions(positions), positions);
+storage.set("orel.spatial-panels.v1", JSON.stringify({
+  assistant: { x: 1.5, y: -0.2 },
+  memory: { x: 0.4, y: 0.6 },
+  vision: { x: "bad", y: 0.5 }
+}));
+const restored = spatial.loadSpatialPanelPositions(positions);
+assert.deepEqual(restored.assistant, { x: 1, y: 0 });
+assert.deepEqual(restored.memory, { x: 0.4, y: 0.6 });
+assert.deepEqual(restored.vision, positions.vision);
+console.log("10 spatial panel interaction and persistence checks passed.");

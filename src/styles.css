@@ -18,3 +18,29 @@
 
 /* Universal Windows hand control */
 .windows-control{margin-top:22px}.control-warning{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin:13px 0;border:1px solid #ffca8350;border-radius:10px;background:#ffca830d;color:#ffd59a;font-size:11px;line-height:1.6}.control-warning svg{flex:0 0 auto;margin-top:1px}.control-screen-info{color:#9edfff;font-size:11px}.control-safety{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px;border:1px solid #75dfff35;border-radius:12px;background:#0b1726;margin:14px 0}.control-safety>div{display:flex;align-items:center;gap:11px;color:#8fe1ff}.control-safety strong,.control-safety small{display:block}.control-safety strong{font-size:12px;color:#e5f5ff}.control-safety small{font-size:10px;color:#8da2bd;margin-top:4px}.control-stop{border-color:#ff9c9c66;color:#ffb5b5}.gesture-map{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}.gesture-map>div{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #ffffff14;border-radius:9px;background:#0b1321;color:#8edfff}.gesture-map strong,.gesture-map small{display:block}.gesture-map strong{font-size:11px;color:#e5f1ff}.gesture-map small{font-size:10px;color:#879bb6;margin-top:4px}.control-sensitivity{display:grid;grid-template-columns:1fr auto;gap:9px;margin:17px 0;color:#a9bad0;font-size:11px}.control-sensitivity input{grid-column:1/-1;width:100%;accent-color:#75dfff}.control-sensitivity strong{color:#e5f5ff}.control-status{display:flex;justify-content:space-between;padding:10px 12px;border:1px solid #ffffff14;border-radius:8px;color:#9cb1cb;font-size:10px}.control-camera-heading{margin-top:24px}.control-safety button{white-space:nowrap}@media(max-width:650px){.control-safety{align-items:stretch;flex-direction:column}.control-safety button{justify-content:center}.gesture-map{grid-template-columns:1fr}}
+
+
+/* OREL HOLO: screen vision and mission planning */
+.screen-preview{position:relative;min-height:240px;max-height:620px;aspect-ratio:16/9;overflow:hidden;border:1px solid #75dfff35;border-radius:12px;background:#050a12;display:grid;place-items:center;margin:16px 0}
+.screen-preview video{width:100%;height:100%;position:absolute;inset:0;object-fit:contain;background:#050a12}
+.screen-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:#8bdfff;padding:24px}
+.screen-placeholder strong{font:600 15px 'Space Grotesk';color:#e5f5ff}
+.screen-placeholder span{font-size:11px;color:#8da2bd}
+.screen-actions,.mission-actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
+.screen-question,.mission-objective{display:grid;gap:8px;margin:15px 0;color:#a9bad0;font-size:11px}
+.screen-question textarea,.mission-objective textarea{width:100%;resize:vertical;min-height:78px;background:#080e19;border:1px solid #ffffff20;border-radius:9px;padding:12px;color:#edf2ff;font:inherit;font-size:12px;line-height:1.6}
+.screen-question textarea:focus,.mission-objective textarea:focus{outline:1px solid #74d9ff88}
+.screen-answer,.mission-result{margin-top:17px;padding:17px;border:1px solid #75dfff30;border-radius:12px;background:#0b1422}
+.screen-answer strong{color:#8bdfff;font-size:12px}
+.screen-answer p,.mission-result>p{white-space:pre-wrap;overflow-wrap:anywhere;color:#c3d2e5;font-size:12px;line-height:1.75}
+.mission-result-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mission-result-heading h3{font:600 18px 'Space Grotesk';margin:7px 0;color:#e8f4ff}
+.mission-result-heading>strong{font:600 18px 'Space Grotesk';color:#8bdfff}
+.mission-progress{height:6px;background:#ffffff14;border-radius:8px;overflow:hidden;margin:14px 0}
+.mission-progress span{display:block;height:100%;background:#70d9ff;transition:width .2s ease}
+.mission-steps{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.mission-steps li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border:1px solid #ffffff12;border-radius:8px;background:#080f1b;color:#8fe1ff}
+.mission-steps label{display:flex;align-items:flex-start;gap:10px;color:#c9d7e8;font-size:11px;line-height:1.6}
+.mission-steps input{margin-top:3px;accent-color:#75dfff}
+.mission-steps small,.mission-result>small{font-size:10px;color:#8194ae;line-height:1.6}
+@media(max-width:650px){.screen-preview{min-height:190px}.mission-result{padding:12px}.mission-result-heading h3{font-size:16px}}

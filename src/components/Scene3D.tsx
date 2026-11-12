@@ -16,13 +16,13 @@ export default function Scene3D({ handControl, height = 320 }: Props) {
 
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" });
     } catch {
       host.textContent = "WebGL n'est pas disponible sur cet appareil.";
       return;
     }
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     renderer.setSize(host.clientWidth || 640, host.clientHeight || 320);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(renderer.domElement);
@@ -102,9 +102,14 @@ export default function Scene3D({ handControl, height = 320 }: Props) {
     const targetScale = new THREE.Vector3(1, 1, 1);
     let frame = 0;
     let animationId = 0;
+    let animationActive = false;
     const animate = () => {
+      if (!animationActive || document.hidden) return;
       animationId = window.requestAnimationFrame(animate);
       frame += 0.006;
+      const pulse = 0.5 + Math.sin(frame * 1.7) * 0.5;
+      inner.scale.setScalar(1 + pulse * 0.035);
+      ringMaterial.emissiveIntensity = 0.3 + pulse * 0.25;
       const control = handControlRef.current;
       if (control?.active) {
         core.rotation.y = THREE.MathUtils.lerp(core.rotation.y, (0.5 - control.x) * 2.4, 0.12);
@@ -123,7 +128,21 @@ export default function Scene3D({ handControl, height = 320 }: Props) {
       stars.rotation.y = Math.sin(frame * 0.35) * 0.08;
       renderer.render(scene, camera);
     };
-    animate();
+    const startAnimation = () => {
+      if (animationActive || document.hidden) return;
+      animationActive = true;
+      animationId = window.requestAnimationFrame(animate);
+    };
+    const stopAnimation = () => {
+      animationActive = false;
+      window.cancelAnimationFrame(animationId);
+    };
+    const handleVisibility = () => {
+      if (document.hidden) stopAnimation();
+      else startAnimation();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    startAnimation();
 
     const resizeObserver = new ResizeObserver(() => {
       const width = host.clientWidth;
@@ -136,7 +155,8 @@ export default function Scene3D({ handControl, height = 320 }: Props) {
     resizeObserver.observe(host);
 
     return () => {
-      window.cancelAnimationFrame(animationId);
+      stopAnimation();
+      document.removeEventListener("visibilitychange", handleVisibility);
       resizeObserver.disconnect();
       coreGeometry.dispose();
       coreMaterial.dispose();
