@@ -9,6 +9,7 @@ import { allowedDesktopApps, isDesktopRuntime, openAllowedApp, type AllowedDeskt
 import { listenOnce, speak } from "./lib/voice";
 import HandTracking from "./components/HandTracking";
 import SpatialWorkspace from "./components/SpatialWorkspace";
+import WindowsGestureControl from "./components/WindowsGestureControl";
 import type { GestureName, HandPointer } from "./lib/gestures";
 
 const Scene3D = lazy(() => import("./components/Scene3D"));
@@ -280,7 +281,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark"><Sparkles size={20}/></div><div><strong>OREL</strong><span>PERSONAL INTELLIGENCE</span></div></div>
         <div className="nav-label">ESPACE</div>
-        {["Accueil", "Assistant", "Interface 3D", "Vision & gestes", "Voix", "Mémoire", "Permissions"].map((item) =>
+        {["Accueil", "Assistant", "Interface 3D", "Vision & gestes", "Contrôle Windows", "Voix", "Mémoire", "Permissions"].map((item) =>
           <button className={active === item ? "nav-item active" : "nav-item"} key={item} onClick={() => setActive(item)}><Command size={16}/>{item}</button>
         )}
         <div className="sidebar-bottom"><ShieldCheck size={16}/><span>Accès contrôlés · local prioritaire</span></div>
@@ -319,6 +320,8 @@ export default function App() {
           </form>
           <div className="chat-options"><label><input type="checkbox" checked={voiceReplies} onChange={(event) => setVoiceReplies(event.target.checked)}/> Lire les réponses à voix haute</label><span>{memoryEnabled ? "Mémoire locale activée" : "Mémoire désactivée"}</span></div>
         </section>}
+
+        {active === "Contrôle Windows" && <WindowsGestureControl/>}
 
         {active === "Permissions" && <section className="workspace">
           <div className="panel-heading"><div><span className="eyebrow">CENTRE DE CONTRÔLE</span><h2>Permissions de l'appareil</h2></div><LockKeyhole size={22}/></div>
