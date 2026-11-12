@@ -24,12 +24,15 @@ export function parseMissionPlan(raw: string): { title: string; summary: string;
 export function isMissionPlan(value: unknown): value is MissionPlan {
   if (typeof value !== "object" || value === null) return false;
   const item = value as Record<string, unknown>;
-  return typeof item.id === "string" && typeof item.title === "string" &&
-    typeof item.summary === "string" && Array.isArray(item.steps) &&
-    item.steps.length >= 2 && item.steps.length <= 8 &&
-    item.steps.every((step) => typeof step === "string") &&
-    Array.isArray(item.completed) && item.completed.every((step) => Number.isInteger(step) && (step as number) >= 0 && (step as number) < item.steps.length) &&
-    typeof item.createdAt === "number" && Number.isFinite(item.createdAt);
+  if (typeof item.id !== "string" || typeof item.title !== "string" ||
+      typeof item.summary !== "string" || !Array.isArray(item.steps) ||
+      item.steps.length < 2 || item.steps.length > 8 ||
+      !item.steps.every((step) => typeof step === "string") ||
+      !Array.isArray(item.completed) ||
+      typeof item.createdAt !== "number" || !Number.isFinite(item.createdAt)) return false;
+  const steps = item.steps as unknown[];
+  const completed = item.completed as unknown[];
+  return completed.every((step) => Number.isInteger(step) && (step as number) >= 0 && (step as number) < steps.length);
 }
 
 export function loadMissionPlan(): MissionPlan | null {
