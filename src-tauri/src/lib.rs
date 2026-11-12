@@ -5,6 +5,47 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::Manager;
+#[cfg(target_os = "windows")]
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+#[cfg(target_os = "windows")]
+use std::time::Duration;
+
+#[cfg(target_os = "windows")]
+static LEFT_MOUSE_PRESSED: AtomicBool = AtomicBool::new(false);
+#[cfg(target_os = "windows")]
+static LAST_MOUSE_HEARTBEAT_MS: AtomicU64 = AtomicU64::new(0);
+
+#[cfg(target_os = "windows")]
+fn now_ms() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|value| value.as_millis() as u64).unwrap_or(0)
+}
+
+#[cfg(target_os = "windows")]
+fn send_left_button(pressed: bool) -> Result<(), String> {
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+        SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT,
+    };
+    let flags = if pressed { MOUSEEVENTF_LEFTDOWN } else { MOUSEEVENTF_LEFTUP };
+    let input = INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT {
+                dx: 0, dy: 0, mouseData: 0, dwFlags: flags, time: 0, dwExtraInfo: 0,
+            },
+        },
+    };
+    let sent = unsafe { SendInput(1, &input, std::mem::size_of::<INPUT>() as i32) };
+    if sent != 1 {
+        return Err("Windows n'a pas accepté l'action de souris.".into());
+    }
+    if pressed {
+        LEFT_MOUSE_PRESSED.store(true, Ordering::SeqCst);
+        LAST_MOUSE_HEARTBEAT_MS.store(now_ms(), Ordering::SeqCst);
+    } else {
+        LEFT_MOUSE_PRESSED.store(false, Ordering::SeqCst);
+    }
+    Ok(())
+}
 
 fn append_audit(app: &tauri::AppHandle, app_id: &str) -> Result<(), String> {
     let directory = app.path().app_data_dir().map_err(|error| error.to_string())?;
@@ -93,6 +134,9 @@ fn move_mouse(x: f64, y: f64) -> Result<(), String> {
         if width <= 0 || height <= 0 {
             return Err("Résolution Windows indisponible.".into());
         }
+        if LEFT_MOUSE_PRESSED.load(Ordering::SeqCst) {
+            LAST_MOUSE_HEARTBEAT_MS.store(now_ms(), Ordering::SeqCst);
+        }
         let px = (x.round() as i32).clamp(0, width - 1);
         let py = (y.round() as i32).clamp(0, height - 1);
         let moved = unsafe { SetCursorPos(px, py) };
@@ -115,25 +159,8 @@ fn set_left_mouse_button(app: tauri::AppHandle, pressed: bool) -> Result<(), Str
         use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
             SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT,
         };
-        let flags = if pressed { MOUSEEVENTF_LEFTDOWN } else { MOUSEEVENTF_LEFTUP };
-        let input = INPUT {
-            r#type: INPUT_MOUSE,
-            Anonymous: INPUT_0 {
-                mi: MOUSEINPUT {
-                    dx: 0,
-                    dy: 0,
-                    mouseData: 0,
-                    dwFlags: flags,
-                    time: 0,
-                    dwExtraInfo: 0,
-                },
-            },
-        };
-        let sent = unsafe { SendInput(1, &input, std::mem::size_of::<INPUT>() as i32) };
-        if sent != 1 {
-            return Err("Windows n'a pas accepté l'action de souris.".into());
-        }
-        append_input_audit(&app, if pressed { "mouse_left_down" } else { "mouse_left_up" })
+        append_input_audit(&app, if pressed { "mouse_left_down" } else { "mouse_left_up" })?;
+        send_left_button(pressed)
     }
     #[cfg(not(target_os = "windows"))]
     {
@@ -179,6 +206,15 @@ fn scroll_mouse(delta: i32) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "windows")]
+    std::thread::spawn(|| loop {
+        std::thread::sleep(Duration::from_millis(100));
+        if LEFT_MOUSE_PRESSED.load(Ordering::SeqCst)
+            && now_ms().saturating_sub(LAST_MOUSE_HEARTBEAT_MS.load(Ordering::SeqCst)) > 1200
+        {
+            let _ = send_left_button(false);
+        }
+    });
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             open_allowed_app,
