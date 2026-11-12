@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Accès natif limité au pointeur Windows et aux applications autorisées",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "allow-open-allowed-app",
     "allow-get-screen-size",
