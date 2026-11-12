@@ -27,13 +27,21 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 };
 
-export function speak(text: string): boolean {
+export function speak(text: string, onFinished?: () => void): boolean {
   if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return false;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    onFinished?.();
+  };
   utterance.lang = "fr-FR";
   utterance.rate = 1;
   utterance.pitch = 1;
+  utterance.onend = finish;
+  utterance.onerror = finish;
   window.speechSynthesis.speak(utterance);
   return true;
 }
@@ -70,6 +78,7 @@ export function listenOnce(
     onError(event.error === "not-allowed"
       ? "Accès au microphone refusé. Autorise-le dans le navigateur."
       : "Erreur microphone : " + event.error);
+    finish();
   };
   recognition.onend = finish;
   try {
