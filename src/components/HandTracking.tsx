@@ -30,6 +30,7 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
   const [pinchSensitivity, setPinchSensitivity] = useState(55);
   const gestureStabilityRef = useRef(500);
   const pinchSensitivityRef = useRef(55);
+  const pointerSmoothRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => { callbackRef.current = onGesture; }, [onGesture]);
   useEffect(() => { pointerCallbackRef.current = onPointer; }, [onPointer]);
@@ -60,6 +61,7 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
     candidateSinceRef.current = 0;
     lastSentRef.current = "unknown";
     lastFrameRef.current = 0;
+    pointerSmoothRef.current = null;
     cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -141,7 +143,7 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
       const draw = (now: number) => {
         if (!activeRef.current || !videoRef.current || !landmarkerRef.current) return;
         rafRef.current = requestAnimationFrame(draw);
-        if (now - lastFrameRef.current < 90 || videoRef.current.readyState < 2) return;
+        if (now - lastFrameRef.current < 50 || videoRef.current.readyState < 2) return;
         lastFrameRef.current = now;
         let result: { landmarks: Landmark[][] };
         try {
@@ -187,8 +189,15 @@ export default function HandTracking({ onGesture, onPointer }: Props) {
         const current = primaryHand ? classifyGesture(primaryHand, pinchSensitivityRef.current / 1000) : "unknown";
         setGesture(current);
         if (primaryHand) {
-          pointerCallbackRef.current?.({ x: primaryHand[8].x, y: primaryHand[8].y, gesture: current, active: current === "point" || current === "pinch" });
+          const raw = { x: 1 - primaryHand[8].x, y: primaryHand[8].y };
+          const previous = pointerSmoothRef.current;
+          const smoothed = previous
+            ? { x: previous.x + (raw.x - previous.x) * 0.42, y: previous.y + (raw.y - previous.y) * 0.42 }
+            : raw;
+          pointerSmoothRef.current = smoothed;
+          pointerCallbackRef.current?.({ x: smoothed.x, y: smoothed.y, gesture: current, active: current === "point" || current === "pinch" || current === "victory" });
         } else {
+          pointerSmoothRef.current = null;
           pointerCallbackRef.current?.({ x: 0.5, y: 0.5, gesture: "unknown", active: false });
         }
         if (current !== candidateRef.current) {
