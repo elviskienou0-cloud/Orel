@@ -196,6 +196,7 @@ export default function App() {
       if (handsFreeRef.current) {
         handsFreeRef.current = false;
         setHandsFree(false);
+        setVoiceReplies(false);
       }
       cancelListening.current?.();
       cancelListening.current = null;
