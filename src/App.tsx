@@ -180,6 +180,7 @@ export default function App() {
       cancelListening.current = null;
       setListening(false);
       window.speechSynthesis?.cancel();
+      setVoiceReplies(false);
       setNotice("Conversation mains libres arrêtée.");
       return;
     }
@@ -187,7 +188,7 @@ export default function App() {
     setHandsFree(true);
     setVoiceReplies(true);
     setNotice("Conversation mains libres activée. OREL écoute après l'autorisation du microphone.");
-    startListening();
+    if (!listening) startListening();
   }
 
   function startListening() {
@@ -217,6 +218,7 @@ export default function App() {
         if (handsFreeRef.current) {
           handsFreeRef.current = false;
           setHandsFree(false);
+          setVoiceReplies(false);
         }
       },
       () => {
@@ -230,6 +232,7 @@ export default function App() {
       if (handsFreeRef.current) {
         handsFreeRef.current = false;
         setHandsFree(false);
+        setVoiceReplies(false);
       }
     }
   }
