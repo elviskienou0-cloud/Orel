@@ -2,9 +2,9 @@ name: OREL CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, fix/orel-reconcile-main-20261111]
   push:
-    branches: [main, feat/orel-v1-finalization-20261111, fix/orel-reconcile-main-20261111]
+    branches: [main, feat/orel-v1-finalization-20261111, fix/orel-reconcile-main-20261111, feat/windows-universal-hand-control]
 
 permissions:
   contents: read

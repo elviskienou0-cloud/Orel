@@ -1,7 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Accès minimal à la seule commande native autorisée d'OREL",
+  "description": "Accès natif limité au pointeur Windows et aux applications autorisées",
   "windows": ["main"],
-  "permissions": ["allow-open-allowed-app"]
+  "permissions": [
+    "allow-open-allowed-app",
+    "allow-get-screen-size",
+    "allow-move-mouse",
+    "allow-set-left-mouse-button",
+    "allow-scroll-mouse"
+  ]
 }

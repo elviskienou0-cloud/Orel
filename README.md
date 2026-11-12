@@ -6,14 +6,13 @@ OREL est un assistant personnel interactif, développé Windows-first avec une a
 
 - Interface React + Vite + TypeScript.
 - Noyau visuel Three.js et espace de travail à panneaux flottants.
-- Déplacement des panneaux à la souris ou par pincement de la main.
-- Réglage de la stabilité des gestes et de la sensibilité du pincement.
 - Suivi local des mains par MediaPipe Tasks Vision.
-- Reconnaissance gestuelle de base.
+- Contrôle global du pointeur Windows par gestes dans l'application OREL Desktop.
+- Curseur à l'index, clic/glisser-déposer au pincement et défilement à deux doigts.
 - Conversation via Ollama local (modèle installé séparément).
 - Entrée et sortie vocales via les API du navigateur.
 - Historique local contrôlable, exportable et importable.
-- Coquille desktop Tauri 2 avec une liste très limitée d'applications Windows autorisées.
+- Coquille desktop Tauri 2 avec actions natives limitées.
 
 ## Prérequis
 
@@ -28,12 +27,7 @@ npm install
 npm run dev
 ```
 
-Ouvre http://localhost:5173.
-
-## Assistant local
-
-Par défaut, OREL utilise http://localhost:11434 et le modèle qwen2.5:3b.
-Dans Ollama, télécharge le modèle séparément, démarre le serveur, puis autorise l'origine locale OREL dans la configuration CORS d'Ollama. Le test de connexion vérifie l'API /api/tags. OREL ne télécharge pas automatiquement les modèles et ne prétend pas être connecté lorsque le serveur est indisponible.
+Ouvre http://localhost:5173. Le mode navigateur permet de tester la vision, mais ne contrôle pas le pointeur système.
 
 ## Application Windows
 
@@ -42,7 +36,13 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
-Le pont natif expose uniquement trois lancements fixes : Bloc-notes, Calculatrice et Explorateur de fichiers. Chaque action demande une confirmation dans l'interface et est inscrite dans le journal local OREL. Aucun shell générique, aucune commande arbitraire, aucun accès global aux fichiers et aucune modification des paramètres système ne sont exposés.
+Dans **Contrôle Windows**, active le contrôle global, puis active la caméra. Index pointé : curseur ; pincement : clic/glisser ; deux doigts : défilement ; Échap : arrêt d'urgence.
+
+Le pont natif n'expose que le curseur, le bouton gauche, la molette et trois lancements fixes d'applications. Aucun shell générique, clavier simulé, commande arbitraire ou accès global aux fichiers n'est exposé.
+
+## Assistant local
+
+Par défaut, OREL utilise http://localhost:11434 et le modèle qwen2.5:3b. Le modèle doit être installé séparément. OREL ne télécharge pas automatiquement les modèles et ne prétend pas être connecté lorsque le serveur est indisponible.
 
 ## Tests et validation
 
@@ -50,19 +50,17 @@ Le pont natif expose uniquement trois lancements fixes : Bloc-notes, Calculatric
 npm test
 npm run typecheck
 npm run build
+npm run desktop:build
 ```
 
-La compilation desktop doit aussi être vérifiée sur Windows avec Rust et WebView2. Les tests automatiques ne remplacent pas les essais webcam, microphone, Ollama et gestes sur le PC cible.
+La compilation desktop et les gestes réels doivent être validés sur Windows. Les tests automatisés ne remplacent pas les essais caméra, microphone, Ollama et souris sur le PC cible.
 
 ## Sécurité
 
 - Caméra et microphone activés uniquement après une action explicite.
+- Le contrôle global de la souris est désactivé par défaut.
+- Échap désactive le contrôle et libère le bouton gauche.
 - Images de caméra traitées localement par OREL.
 - Conversations stockées localement jusqu'à export manuel.
 - Ne jamais committer de secrets, jetons, mots de passe ou fichiers .env.
-- Ne jamais placer de clés privées dans des variables VITE_*.
-- Actions natives limitées, visibles, confirmées et journalisées.
-
-## Android
-
-Voir [docs/ANDROID_PREPARATION.md](docs/ANDROID_PREPARATION.md). Android est préparé architecturalement, mais aucun APK n'est livré par cette branche.
+- Android est préparé architecturalement, mais aucun APK n'est livré par cette branche.

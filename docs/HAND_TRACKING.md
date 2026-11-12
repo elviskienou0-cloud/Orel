@@ -2,47 +2,43 @@
 
 ## Activation
 
-1. Open OREL through `http://localhost:5173` or an HTTPS origin.
-2. Navigate to **Vision & gestes**.
-3. Select **Activer la caméra** and authorize camera access in the browser.
-4. Keep one hand clearly visible, palm facing the camera, with good front lighting.
-5. Wait for the first model download and initialization to finish.
-6. Select **Arrêter la caméra** to stop the stream and release the camera.
+1. Lance OREL Desktop sur Windows ou ouvre la version navigateur sur localhost/HTTPS pour les essais de vision seuls.
+2. Dans **Contrôle Windows**, active explicitement le contrôle global si tu utilises l'application desktop.
+3. Sélectionne **Activer la caméra** et autorise son accès.
+4. Garde une main clairement visible, avec un éclairage frontal.
+5. Attends la fin du premier téléchargement du modèle.
+6. Désactive le contrôle ou appuie sur Échap avant de quitter une session. Arrêter la caméra libère aussi le bouton gauche si un glissement était en cours.
+
+## Gestes de contrôle global Windows
+
+| Geste | Action |
+|---|---|
+| Index pointé | Déplacer le curseur Windows |
+| Pincement pouce-index | Appuyer sur le bouton gauche ; relâcher pour cliquer, maintenir pour glisser-déposer |
+| Deux doigts en V | Faire défiler verticalement en déplaçant la main |
+| Perte de la main / arrêt caméra | Relâcher automatiquement le bouton gauche |
+| Échap | Désactiver le contrôle global et relâcher le bouton gauche |
+
+Le contrôle natif est disponible uniquement dans OREL Desktop pour Windows. La version navigateur ne peut pas piloter le pointeur système. L'activation du contrôle global et l'autorisation caméra sont deux actions séparées. Le bouton gauche est le seul bouton de souris simulé ; aucun clavier, terminal ou shell n'est exposé.
+
+## Réglage et précision
+
+- Le curseur utilise un lissage exponentiel pour réduire les tremblements.
+- Une zone périphérique de 6 % évite les mouvements involontaires près des bords.
+- La sensibilité est réglable dans OREL.
+- Le suivi est limité à environ 20 images par seconde pour rester adapté aux PC modestes.
+- Les mouvements sont relatifs à la surface visible de la webcam et sont projetés sur la résolution principale de Windows.
 
 ## Runtime assets
 
-The first activation downloads:
-- MediaPipe Tasks Vision WebAssembly files from jsDelivr, pinned to version 0.10.22.
-- The Hand Landmarker float16 model from Google's public MediaPipe model storage.
+Le premier démarrage télécharge MediaPipe Tasks Vision 0.10.35 et le modèle Hand Landmarker public. Le modèle est ensuite exécuté localement. OREL n'envoie pas les images de la webcam.
 
-The model runs locally after download. OREL does not upload webcam frames. A network connection is required for the initial download unless the browser already has cached assets.
+## Sécurité et limites
 
-## Initial gestures
-
-| Gesture | First V1 behavior |
-|---|---|
-| Open palm | Activate 3D hand-control mode on the Vision screen, only if shortcuts are enabled |
-| Closed fist | Navigate to Home, only if shortcuts are enabled |
-| Two fingers / victory | Navigate to Assistant, only if shortcuts are enabled |
-| Index pointing | Orient the 3D core while the hand remains visible |
-| Thumb-index pinch | Enlarge the 3D core while the pinch is held |
-
-A gesture must remain stable for approximately 500 ms before OREL emits it. This debounce reduces accidental repeated commands.
-
-## Privacy and safety
-
-- Camera access is requested only after the user presses the activation button.
-- Camera processing is performed locally in the browser.
-- Audio capture is disabled in the hand-tracking component.
-- The camera stream is stopped when the user presses Stop or leaves the component.
-- Navigation shortcuts are off by default.
-- Browser camera permission does not grant Windows filesystem, process, shell or system permissions.
-
-## Current limitations
-
-- Gesture classification is heuristic and depends on camera angle, lighting, hand orientation and individual anatomy.
-- Thumb and finger extension estimates are not yet calibrated for every hand orientation.
-- Only the first detected hand is used for gesture classification; both hands are tracked and drawn.
-- Pointing and pinch currently control only the 3D core rotation and scale; object selection and panel manipulation remain future work.
-- The camera selector is implemented; gesture sensitivity controls, per-user calibration and native Windows camera integration remain future work.
-- The first model download requires Internet access.
+- Le contrôle global est désactivé par défaut et doit être activé à chaque session.
+- Échap est le raccourci d'arrêt d'urgence.
+- Le bouton gauche est automatiquement relâché à la perte de la main, à l'arrêt de la caméra et à la fermeture du composant.
+- Les commandes natives sont limitées au déplacement du curseur, au bouton gauche et à la molette.
+- Un clic gestuel agit sur la fenêtre Windows au premier plan. Évite de laisser une fenêtre contenant une action sensible sous le curseur.
+- La précision réelle dépend de la webcam, de la lumière, de la distance, de l'angle et de la fatigue de la main. Une calibration physique plus avancée et des essais sur le PC cible restent nécessaires.
+- Le système ne garantit pas encore une manipulation parfaite de chaque application ou de ses contrôles spécifiques.

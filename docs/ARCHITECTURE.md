@@ -17,8 +17,21 @@
 - Voix : API SpeechRecognition et SpeechSynthesis du navigateur, avec gestion de fin et d'erreur.
 - Mémoire : historique local limité à 100 messages, validation stricte, import/export JSON.
 - IA : adaptateur Ollama local avec test de connexion, délais d'attente et annulation.
-- Desktop : Tauri 2, pont natif réduit à une liste d'applications autorisées.
+- Desktop : Tauri 2, pont natif réduit à une liste d'applications autorisées et au contrôle limité du pointeur Windows.
 - Android : adaptateurs mobiles à créer séparément, sans exposer les commandes Windows.
+
+## Contrôle gestuel Windows
+
+- Disponible uniquement dans OREL Desktop sur Windows.
+- L'utilisateur active le contrôle global explicitement à chaque session ; la caméra reste une permission séparée.
+- Le doigt index pilote le curseur avec lissage et réglage de sensibilité.
+- Le pincement appuie sur le bouton gauche ; le relâchement termine le clic ou le glisser-déposer.
+- Le geste deux doigts pilote la molette verticale.
+- La perte de la main, l'arrêt de caméra, la fermeture du composant ou Échap relâchent le bouton gauche.
+- Les commandes Rust utilisent les API Windows pour positionner le curseur et envoyer uniquement les événements de souris gauche et molette.
+- Aucun clavier, shell, commande arbitraire ou accès global aux fichiers n'est exposé.
+- Les actions de bouton gauche sont journalisées dans le répertoire de données OREL.
+- La version navigateur ne peut pas contrôler le pointeur système.
 
 ## Assistant IA
 
@@ -36,29 +49,18 @@
 - Les imports sont validés, limités à 2 Mo et à 100 messages.
 - Aucun historique n'est synchronisé vers un serveur.
 
-## Sécurité du pont Windows
-
-- La version navigateur ne possède aucun accès au système de fichiers, aux processus ou au shell Windows.
-- Tauri n'expose pas de commande shell générique.
-- Seuls Bloc-notes, Calculatrice et Explorateur de fichiers sont lançables par identifiants fixes.
-- La confirmation utilisateur est demandée avant le lancement depuis l'interface.
-- Chaque lancement autorisé est ajouté à un journal local dans le répertoire de données OREL.
-- Aucun argument libre, chemin libre, script, installation logicielle ou changement de configuration système n'est accepté.
-- Les actions natives restent désactivées hors de l'application desktop.
-
 ## Vision gestuelle
 
 - MediaPipe Tasks Vision est fixé à la version stable 0.10.35 ; le runtime WASM utilise exactement la même version.
 - Jusqu'à deux mains et leurs 21 points sont suivis localement.
 - Le classificateur de gestes reste heuristique et dépend de l'angle, de la lumière et de la position de la main.
-- Les raccourcis de navigation restent désactivés par défaut.
-- Dans l’espace de travail, un pincement maintenu sur un panneau permet de le déplacer ; le déplacement souris reste disponible.
 - Le premier chargement du moteur WASM et du modèle nécessite Internet.
-- L'inférence se déroule sur le thread principal et doit être profilée sur le PC cible.
+- L'inférence se déroule sur le thread principal ; le profilage réel sur le PC cible reste nécessaire.
 
-## Limites et validations restantes
+## Validation restante
 
-- Le test Ollama et le build navigateur doivent être exécutés localement.
-- La compilation Tauri et les permissions WebView2 doivent être vérifiées sur Windows.
-- Les performances doivent être mesurées sur le portable réel de 8 Go.
+- Exécuter les tests TypeScript, Node et build.
+- Compiler l'application Tauri sur Windows avec Rust et WebView2.
+- Vérifier les commandes de souris sur le PC cible.
+- Mesurer la précision, le délai et la consommation mémoire sur le portable de 8 Go.
 - Android n'est pas implémenté dans cette branche.
