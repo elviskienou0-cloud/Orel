@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, ClipboardList, ListChecks, RotateCcw, Sparkles } from "lucide-react";
+import { CheckCircle2, ClipboardList, RotateCcw, Sparkles } from "lucide-react";
 import { planMissionWithOllama, type OllamaConfig } from "../lib/ollama";
 import { loadMissionPlan, parseMissionPlan, saveMissionPlan, type MissionPlan } from "../lib/missions";
 
