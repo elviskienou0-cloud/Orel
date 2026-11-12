@@ -7,6 +7,7 @@ import { clearMessages, exportMessages, importMessages, loadMessages, saveMessag
 import { askOllama, checkOllama } from "./lib/ollama";
 import { allowedDesktopApps, isDesktopRuntime, openAllowedApp, type AllowedDesktopApp } from "./lib/platform";
 import { listenOnce, speak } from "./lib/voice";
+import { parseDesktopCommand } from "./lib/command-router";
 import HandTracking from "./components/HandTracking";
 import SpatialWorkspace from "./components/SpatialWorkspace";
 import WindowsGestureControl from "./components/WindowsGestureControl";
@@ -123,6 +124,35 @@ export default function App() {
     const controller = new AbortController();
     requestAbort.current = controller;
     try {
+      const desktopCommand = parseDesktopCommand(prompt);
+      if (desktopCommand) {
+        let commandAnswer: string;
+        if (!isDesktopRuntime()) {
+          commandAnswer = "J'ai reconnu la commande « " + desktopCommand.label + " », mais le lancement d'applications nécessite OREL Desktop sous Windows.";
+        } else if (!window.confirm("Autoriser OREL à ouvrir " + desktopCommand.label + " ?")) {
+          commandAnswer = "Action annulée. " + desktopCommand.label + " n'a pas été lancé.";
+        } else {
+          setDesktopBusy(true);
+          try {
+            await openAllowedApp(desktopCommand.appId);
+            commandAnswer = desktopCommand.label + " a été lancé. L'action a été inscrite dans le journal local OREL.";
+            setNotice(commandAnswer);
+          } catch (error) {
+            commandAnswer = "Impossible de lancer " + desktopCommand.label + " : " + (error instanceof Error ? error.message : "erreur inconnue.");
+          } finally {
+            setDesktopBusy(false);
+          }
+        }
+        addMessage("assistant", commandAnswer);
+        if (handsFreeRef.current) {
+          const canSpeak = speak(commandAnswer, resumeHandsFreeListening);
+          if (!canSpeak) resumeHandsFreeListening();
+        } else if (voiceReplies) {
+          speak(commandAnswer);
+        }
+        return;
+      }
+
       const local = localReply(prompt);
       const answer = local ?? await askOllama(config, messages, prompt, controller.signal);
       addMessage("assistant", answer);
