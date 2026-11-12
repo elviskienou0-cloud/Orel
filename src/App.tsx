@@ -69,6 +69,8 @@ export default function App() {
   const [microphoneReady, setMicrophoneReady] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceReplies, setVoiceReplies] = useState(false);
+  const [handsFree, setHandsFree] = useState(false);
+  const handsFreeRef = useRef(false);
   const [memoryEnabled, setMemoryEnabled] = useState(readMemoryEnabled);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages());
   const [draft, setDraft] = useState("");
@@ -95,6 +97,7 @@ export default function App() {
   }, [messages, busy]);
 
   useEffect(() => () => {
+    handsFreeRef.current = false;
     cancelListening.current?.();
     requestAbort.current?.abort();
     window.speechSynthesis?.cancel();
@@ -123,13 +126,23 @@ export default function App() {
       const local = localReply(prompt);
       const answer = local ?? await askOllama(config, messages, prompt, controller.signal);
       addMessage("assistant", answer);
-      if (voiceReplies) speak(answer);
+      if (handsFreeRef.current) {
+        const canSpeak = speak(answer, resumeHandsFreeListening);
+        if (!canSpeak) resumeHandsFreeListening();
+      } else if (voiceReplies) {
+        speak(answer);
+      }
     } catch (error) {
       if (controller.signal.aborted) {
         addMessage("assistant", "Requête annulée.");
       } else {
         const reason = error instanceof Error ? error.message : "Erreur inconnue.";
-        addMessage("assistant", "Je ne peux pas encore traiter cette demande. " + reason + " Vérifie Ollama et le modèle configuré.");
+        const errorReply = "Je ne peux pas encore traiter cette demande. " + reason + " Vérifie Ollama et le modèle configuré.";
+        addMessage("assistant", errorReply);
+        if (handsFreeRef.current) {
+          const canSpeak = speak(errorReply, resumeHandsFreeListening);
+          if (!canSpeak) resumeHandsFreeListening();
+        }
       }
     } finally {
       if (requestAbort.current === controller) requestAbort.current = null;
@@ -153,8 +166,38 @@ export default function App() {
     }
   }
 
+  function resumeHandsFreeListening() {
+    window.setTimeout(() => {
+      if (handsFreeRef.current) startListening();
+    }, 450);
+  }
+
+  function toggleHandsFree() {
+    if (handsFreeRef.current) {
+      handsFreeRef.current = false;
+      setHandsFree(false);
+      cancelListening.current?.();
+      cancelListening.current = null;
+      setListening(false);
+      window.speechSynthesis?.cancel();
+      setVoiceReplies(false);
+      setNotice("Conversation mains libres arrêtée.");
+      return;
+    }
+    handsFreeRef.current = true;
+    setHandsFree(true);
+    setVoiceReplies(true);
+    setNotice("Conversation mains libres activée. OREL écoute après l'autorisation du microphone.");
+    if (!listening) startListening();
+  }
+
   function startListening() {
     if (listening) {
+      if (handsFreeRef.current) {
+        handsFreeRef.current = false;
+        setHandsFree(false);
+        setVoiceReplies(false);
+      }
       cancelListening.current?.();
       cancelListening.current = null;
       setListening(false);
@@ -173,6 +216,11 @@ export default function App() {
         setListening(false);
         cancelListening.current = null;
         setNotice(message);
+        if (handsFreeRef.current) {
+          handsFreeRef.current = false;
+          setHandsFree(false);
+          setVoiceReplies(false);
+        }
       },
       () => {
         setListening(false);
@@ -180,7 +228,14 @@ export default function App() {
       }
     );
     cancelListening.current = stop;
-    if (!stop) setListening(false);
+    if (!stop) {
+      setListening(false);
+      if (handsFreeRef.current) {
+        handsFreeRef.current = false;
+        setHandsFree(false);
+        setVoiceReplies(false);
+      }
+    }
   }
 
   function handleGesture(gesture: Exclude<GestureName, "unknown">) {
@@ -337,7 +392,7 @@ export default function App() {
           {notice && <p className="notice" role="status">{notice}</p>}
         </section>}
 
-        {active === "Voix" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">INTERACTION VOCALE</span><h2>Voix d'OREL</h2></div><AudioLines size={22}/></div><p className="panel-description">La reconnaissance vocale dépend du navigateur. La synthèse vocale utilise les voix installées sur Windows.</p><div className="voice-actions"><button className="primary-button" onClick={startListening}>{listening ? <MicOff size={17}/> : <Mic size={17}/>} {listening ? "Arrêter l'écoute" : "Démarrer l'écoute"}</button><button className="secondary-button" onClick={() => speak("Bonjour. Je suis OREL. Je suis prêt.")}><Volume2 size={16}/> Tester la voix</button><button className="secondary-button" onClick={() => window.speechSynthesis?.cancel()}><VolumeX size={16}/> Arrêter la lecture</button></div>{notice && <p className="notice">{notice}</p>}</section>}
+        {active === "Voix" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">INTERACTION VOCALE</span><h2>Voix d'OREL</h2></div><AudioLines size={22}/></div><p className="panel-description">La reconnaissance vocale dépend du navigateur. La synthèse vocale utilise les voix installées sur Windows.</p><div className="voice-actions"><button className={handsFree ? "secondary-button control-stop" : "primary-button"} onClick={toggleHandsFree}>{handsFree ? <MicOff size={17}/> : <Mic size={17}/>} {handsFree ? "Arrêter la conversation mains libres" : "Activer la conversation mains libres"}</button><button className="secondary-button" onClick={startListening}>{listening ? <MicOff size={17}/> : <Mic size={17}/>} {listening ? "Arrêter l'écoute" : "Écoute ponctuelle"}</button><button className="secondary-button" onClick={() => speak("Bonjour. Je suis OREL. Je suis prêt.")}><Volume2 size={16}/> Tester la voix</button><button className="secondary-button" onClick={() => window.speechSynthesis?.cancel()}><VolumeX size={16}/> Arrêter la lecture</button></div><p className="panel-description">{handsFree ? "Mode actif : OREL écoute, répond oralement, puis relance l'écoute. Désactive le mode pour arrêter." : "Le mode mains libres nécessite une autorisation microphone et une API de reconnaissance vocale compatible. Il ne constitue pas une écoute permanente par mot-clé."}</p>{notice && <p className="notice">{notice}</p>}</section>}
 
         {active === "Mémoire" && <section className="workspace"><div className="panel-heading"><div><span className="eyebrow">DONNÉES LOCALES</span><h2>Mémoire d’OREL</h2></div><Activity size={22}/></div><p className="panel-description">Jusqu’à 100 messages sont conservés dans le stockage local de ce navigateur. Rien n’est synchronisé vers un serveur. Les sauvegardes exportées contiennent tes conversations.</p><div className="memory-summary"><strong>{memoryEnabled ? messages.length : 0}</strong><span>messages conservés</span><button className="quiet-button" onClick={eraseMemory}><Trash2 size={15}/> Tout effacer</button></div><div className="memory-tools"><button className="secondary-button" onClick={() => setMemoryEnabled((value) => !value)}>{memoryEnabled ? "Désactiver la mémoire" : "Activer la mémoire"}</button><button className="secondary-button" onClick={exportMemoryFile} disabled={!memoryEnabled || !messages.length}>Exporter JSON</button><button className="secondary-button" onClick={() => memoryFileRef.current?.click()} disabled={!memoryEnabled}>Importer JSON</button><input ref={memoryFileRef} type="file" accept="application/json,.json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void importMemoryFile(file); event.target.value = ""; }}/></div><label className="memory-search">Rechercher dans l’historique<input type="search" value={memoryQuery} onChange={(event) => setMemoryQuery(event.target.value)} placeholder="Mot ou expression…"/></label><div className="memory-list">{(memoryEnabled ? messages : []).filter((message) => message.content.toLocaleLowerCase("fr-FR").includes(memoryQuery.trim().toLocaleLowerCase("fr-FR"))).slice().reverse().map((message) => <article className="memory-item" key={message.id}><span>{message.role === "user" ? "TOI" : "OREL"} · {new Date(message.createdAt).toLocaleString("fr-FR")}</span><p>{message.content}</p></article>)}{memoryEnabled && messages.length > 0 && !messages.some((message) => message.content.toLocaleLowerCase("fr-FR").includes(memoryQuery.trim().toLocaleLowerCase("fr-FR"))) && <p className="muted">Aucun message correspondant.</p>}</div></section>}
 
