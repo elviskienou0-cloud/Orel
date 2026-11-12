@@ -10,7 +10,7 @@ OREL est un assistant personnel interactif, développé Windows-first avec une a
 - Contrôle global du pointeur Windows par gestes dans l'application OREL Desktop.
 - Curseur à l'index, clic/glisser-déposer au pincement et défilement à deux doigts.
 - Conversation via Ollama local (modèle installé séparément).
-- Entrée et sortie vocales via les API du navigateur.
+- Entrée et sortie vocales via les API du navigateur, avec mode conversation mains libres (écoute, réponse vocale, reprise de l'écoute).
 - Historique local contrôlable, exportable et importable.
 - Coquille desktop Tauri 2 avec actions natives limitées.
 
@@ -39,6 +39,10 @@ npm run desktop:build
 Dans **Contrôle Windows**, active le contrôle global, puis active la caméra. Index pointé : curseur ; pincement : clic/glisser ; deux doigts : défilement ; Échap : arrêt d'urgence.
 
 Le pont natif n'expose que le curseur, le bouton gauche, la molette et trois lancements fixes d'applications. Aucun shell générique, clavier simulé, commande arbitraire ou accès global aux fichiers n'est exposé.
+
+## Conversation vocale
+
+Dans **Voix**, active « Conversation mains libres » pour qu'OREL écoute une phrase, traite la demande, lise sa réponse puis relance l'écoute. Le bouton d'arrêt coupe l'écoute et la synthèse vocale. Ce mode dépend de la prise en charge de SpeechRecognition par le navigateur et de l'autorisation du microphone ; il ne fournit pas de mot de réveil et n'est pas une écoute permanente garantie. La reconnaissance vocale du navigateur peut utiliser un service de reconnaissance externe selon le navigateur et sa configuration. La synthèse vocale utilise les voix installées sur Windows.
 
 ## Assistant local
 
